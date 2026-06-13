@@ -9,13 +9,18 @@
   "scripts": {
     "start": "node app.js",
     "test": "jest --coverage",
-    "stress": "NUM_CONTAS=10000 NUM_TRANSACOES=50000 node app.js"
+    "stress": "NUM_CONTAS=10000 NUM_TRANSACOES=50000 node app.js",
+    "clean": "rm relatorio.txt",
+    "api": "node api.js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0",
+    "better-sqlite3": "^9.4.0"
   },
   "devDependencies": {
     "jest": "^30.4.2"
