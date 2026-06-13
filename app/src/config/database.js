@@ -1,5 +1,6 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 
 const DB_PATH = path.resolve(__dirname, '..', '..', 'data', 'banking.db');
 
@@ -7,11 +8,16 @@ let db;
 
 function getDatabase() {
   if (!db) {
-    // TODO: adicionar pool de conexões para produção
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    inicializarTabelas();
+    try {
+      // TODO: adicionar pool de conexões para produção
+      fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+      db = new Database(DB_PATH);
+      db.pragma('journal_mode = WAL');
+      db.pragma('foreign_keys = ON');
+      inicializarTabelas();
+    } catch (erro) {
+      throw new Error(`Falha ao inicializar banco de dados: ${erro.message}`);
+    }
   }
   return db;
 }
