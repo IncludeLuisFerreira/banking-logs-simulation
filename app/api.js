@@ -7,6 +7,26 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
+// --- Rota Raiz ---
+
+app.get('/', (req, res) => {
+  res.json({
+    nome: 'Banking Simulation API',
+    versao: '0.0.1',
+    endpoints: {
+      auth: {
+        registrar: { metodo: 'POST', url: '/auth/register', auth: false, body: { username: 'string', password: 'string' } },
+        login: { metodo: 'POST', url: '/auth/login', auth: false, body: { username: 'string', password: 'string' } },
+        me: { metodo: 'GET', url: '/auth/me', auth: true }
+      },
+      simulacao: {
+        iniciar: { metodo: 'POST', url: '/simulacao/iniciar', auth: true, body: { numContas: 'number (opcional)', numTransacoes: 'number (opcional)', saldoInicial: 'number (opcional)' } },
+        resultado: { metodo: 'GET', url: '/simulacao/resultado', auth: true }
+      }
+    }
+  });
+});
+
 // --- Rotas de Autenticação ---
 
 app.post('/auth/register', (req, res) => {
