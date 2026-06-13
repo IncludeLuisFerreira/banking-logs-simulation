@@ -7,7 +7,12 @@
   "type": "commonjs",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "test": "jest --coverage",
+    "stress": "NUM_CONTAS=10000 NUM_TRANSACOES=50000 node app.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "express": "^5.2.1"
