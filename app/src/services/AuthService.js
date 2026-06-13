@@ -25,9 +25,10 @@ class AuthService {
       throw err;
     }
 
+    const usernameTrimmed = username.trim();
     const db = getDatabase();
 
-    const usernameExistente = db.prepare('SELECT id FROM usuarios WHERE username = ?').get(username);
+    const usernameExistente = db.prepare('SELECT id FROM usuarios WHERE username = ?').get(usernameTrimmed);
     if (usernameExistente) {
       const err = new Error('Username já está em uso');
       err.status = 409;
@@ -37,9 +38,9 @@ class AuthService {
     const passwordHash = bcrypt.hashSync(password, SALT_ROUNDS);
     const result = db.prepare(
       'INSERT INTO usuarios (username, password_hash) VALUES (?, ?)'
-    ).run(username, passwordHash);
+    ).run(usernameTrimmed, passwordHash);
 
-    return new Usuario(result.lastInsertRowid, username, passwordHash);
+    return new Usuario(result.lastInsertRowid, usernameTrimmed, passwordHash);
   }
 
   login(username, password) {
@@ -49,8 +50,9 @@ class AuthService {
       throw err;
     }
 
+    const usernameTrimmed = username.trim();
     const db = getDatabase();
-    const row = db.prepare('SELECT * FROM usuarios WHERE username = ?').get(username);
+    const row = db.prepare('SELECT * FROM usuarios WHERE username = ?').get(usernameTrimmed);
 
     if (!row) {
       const err = new Error('Credenciais inválidas');
