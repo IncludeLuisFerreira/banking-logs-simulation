@@ -1,0 +1,18 @@
+{
+  "name": "banking-simulation",
+  "version": "0.0.1",
+  "description": "Simulação de internet banking",
+  "license": "MIT",
+  "author": "Luís Felipe, Nick (Milena)",
+  "type": "commonjs",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2"
+  }
+}
