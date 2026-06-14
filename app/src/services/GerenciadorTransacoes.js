@@ -21,6 +21,8 @@ class GerenciadorTransacoes {
     this.workers = [];
     this.lockLogger = lockLogger;
     this.totalTransacoes = 0;
+    this.workerDelayMs = 0;
+    this.source = null;
   }
 
   adicionarTransacao(t) {
@@ -29,7 +31,7 @@ class GerenciadorTransacoes {
   }
 
   start() {
-    this.relatorio.setQuantidadeTransacoes(this.fila.size());
+    this.relatorio.setQuantidadeTransacoes(this.totalTransacoes);
     this.running = true;
     for (let i = 0; i < this.NUM_WORKERS; i++) {
       this.workers.push(this.processarTransacao(i));
@@ -61,7 +63,7 @@ class GerenciadorTransacoes {
           case STATES.SUCCESS:
             this.relatorio.push(task, tempoEspera);
             if (this.lockLogger) {
-              this.lockLogger.emit('transacao:success', {
+              this.lockLogger.onEvent('transacao:success', {
                 threadId,
                 origemId: task.getOrigem().getId(),
                 destinoId: task.getDestino().getId(),
@@ -115,10 +117,15 @@ class GerenciadorTransacoes {
 
     try {
       const context = { threadId, origemId: t.getOrigem().getId(), destinoId: t.getDestino().getId() };
+      if (this.source) context.source = this.source;
 
       lock1 = await primeiro.tryLock(500, context);
       if (!lock1) {
         return STATES.LOCK_FAILED;
+      }
+
+      if (this.workerDelayMs > 0) {
+        await new Promise(r => setTimeout(r, this.workerDelayMs));
       }
 
       if (segundo !== null) {
@@ -147,10 +154,10 @@ class GerenciadorTransacoes {
   }
 
   async encerrar() {
-    while (!this.fila.isEmpty() || this.taskEmProcesso > 0) {
+    this.running = false;
+    while (this.taskEmProcesso > 0) {
       await new Promise(r => setTimeout(r, 10));
     }
-    this.running = false;
     await Promise.allSettled(this.workers);
     this.relatorio.write();
   }
