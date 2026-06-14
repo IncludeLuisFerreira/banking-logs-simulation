@@ -182,7 +182,6 @@ function processarEvento(type, data) {
   }
 
   else if (type === 'simulacao-visual:iniciada') {
-    contasData = data.contas || [];
     accountStates.clear();
     activeArrows.clear();
     stats = { transacoes: 0, locksAtivos: 0 };
