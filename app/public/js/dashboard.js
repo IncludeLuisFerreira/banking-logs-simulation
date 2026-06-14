@@ -12,6 +12,11 @@ function exibirFeedback(mensagem, tipo) {
   feedback.hidden = false;
 }
 
+function ocultarFeedback() {
+  feedback.hidden = true;
+  feedback.textContent = '';
+}
+
 function redirecionarLogin() {
   localStorage.removeItem('auth_token');
   window.location.href = '/index.html';
@@ -25,6 +30,8 @@ async function carregarUsuario() {
     return;
   }
 
+  ocultarFeedback();
+
   try {
     const resposta = await fetch(`${API_URL}/auth/me`, {
       headers: {
@@ -33,23 +40,23 @@ async function carregarUsuario() {
     });
 
     if (!resposta.ok) {
-      redirecionarLogin();
+      exibirFeedback('Sessão expirada. Faça login novamente.', 'error');
+      setTimeout(redirecionarLogin, 1500);
       return;
     }
 
     const dados = await resposta.json();
-    userDisplay.textContent = dados.username;
-    userWelcome.textContent = dados.username;
+    const nome = dados.username || 'usuário';
+    userDisplay.textContent = nome;
+    userWelcome.textContent = nome;
 
   } catch (erro) {
     console.error('Erro ao carregar usuário:', erro);
-    redirecionarLogin();
+    exibirFeedback('Erro de conexão. Redirecionando...', 'error');
+    setTimeout(redirecionarLogin, 1500);
   }
 }
 
-btnLogout.addEventListener('click', function () {
-  localStorage.removeItem('auth_token');
-  window.location.href = '/index.html';
-});
+btnLogout.addEventListener('click', redirecionarLogin);
 
 carregarUsuario();
