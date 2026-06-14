@@ -51,6 +51,8 @@ const Conta = require('./src/model/Conta');
 const Transacao = require('./src/model/Transacao');
 const GerenciadorTransacoes = require('./src/services/GerenciadorTransacoes');
 const simulacaoService = require('./src/services/SimulacaoService');
+const SimulacaoVisualService = require('./src/services/SimulacaoVisualService');
+const simulacaoVisual = new SimulacaoVisualService(simulacaoService.lockLogger);
 
 app.get('/simulacao/contas', autenticar, (req, res) => {
   try {
@@ -101,6 +103,30 @@ app.post('/simulacao/stress', autenticar, async (req, res) => {
 app.post('/simulacao/stop', autenticar, (req, res) => {
   try {
     const resultado = simulacaoService.pararSimulacao();
+    res.json(resultado);
+  } catch (erro) {
+    res.status(500).json({ erro: erro.message });
+  }
+});
+
+// --- Rotas da Simulação Visual ---
+
+app.post('/simulacao/visual', autenticar, async (req, res) => {
+  try {
+    const { numContas } = req.body;
+    const resultado = await simulacaoVisual.iniciar(parseInt(numContas) || 8);
+    if (resultado.error) {
+      return res.status(400).json({ erro: resultado.error });
+    }
+    res.json(resultado);
+  } catch (erro) {
+    res.status(500).json({ erro: erro.message });
+  }
+});
+
+app.post('/simulacao/visual/stop', autenticar, (req, res) => {
+  try {
+    const resultado = simulacaoVisual.parar();
     res.json(resultado);
   } catch (erro) {
     res.status(500).json({ erro: erro.message });
