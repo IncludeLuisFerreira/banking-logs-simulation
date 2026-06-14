@@ -129,7 +129,7 @@ function conectarSSE() {
 
   eventSource = new EventSource(`${API_URL}/simulacao/stream?token=${token}`);
 
-  const eventTypes = ['lock:request', 'lock:acquired', 'lock:blocked', 'lock:timeout', 'lock:released', 'transacao:success', 'simulacao-visual:iniciada', 'simulacao-visual:finalizada', 'simulacao-visual:parada'];
+  const eventTypes = ['transacao:lendo_origem', 'transacao:conflito', 'transacao:debitado', 'transacao:success', 'simulacao-visual:iniciada', 'simulacao-visual:finalizada', 'simulacao-visual:parada'];
 
   for (const type of eventTypes) {
     eventSource.addEventListener(type, (e) => {
@@ -178,7 +178,7 @@ function processarTick() {
 let contasData = [];
 let accountStates = new Map();
 let activeArrows = new Map();
-let stats = { transacoes: 0, locksAtivos: 0 };
+let stats = { transacoes: 0, locksAtivos: 0, contecoes: 0 };
 let transacoesEmAndamento = new Map();
 let transacoesConcluidas = [];
 let resultadosSimulacao = null;
@@ -187,46 +187,51 @@ let inicioSimulacaoTimestamp = null;
 function processarEvento(type, data) {
   if (data.source && data.source !== 'visual') return;
 
-  if (type === 'lock:request') {
-    const { contaId, origemId, destinoId } = data;
-    if (contaId) setAccountState(contaId, 'requesting');
-    atualizarLocksAtivos();
+  if (type === 'transacao:lendo_origem') {
+    const { origemId, destinoId } = data;
+    if (origemId) setAccountState(origemId, 'reading');
+    if (destinoId) setAccountState(destinoId, 'reading');
 
     if (origemId && destinoId) {
       const key = `${origemId}-${destinoId}`;
       if (!transacoesEmAndamento.has(key)) {
         transacoesEmAndamento.set(key, { origemId, destinoId, inicioTimestamp: Date.now() });
       }
-      setArrowState(key, 'requesting');
+      setArrowState(key, 'reading');
     }
+    atualizarTransacoesAtivas();
   }
 
-  else if (type === 'lock:acquired') {
-    const { contaId } = data;
-    if (contaId) setAccountState(contaId, 'locked');
-    atualizarLocksAtivos();
-  }
+  else if (type === 'transacao:debitado') {
+    const { origemId, destinoId } = data;
+    if (origemId) setAccountState(origemId, 'locked');
+    if (destinoId) setAccountState(destinoId, 'locked');
 
-  else if (type === 'lock:blocked') {
-    const { contaId } = data;
-    if (contaId) setAccountState(contaId, 'blocked');
-  }
-
-  else if (type === 'lock:timeout') {
-    const { contaId, origemId, destinoId } = data;
-    if (contaId) setAccountState(contaId, 'timeout');
     if (origemId && destinoId) {
       const key = `${origemId}-${destinoId}`;
-      transacoesEmAndamento.delete(key);
-      removeArrow(key);
+      setArrowState(key, 'locked');
     }
-    atualizarLocksAtivos();
+    atualizarTransacoesAtivas();
   }
 
-  else if (type === 'lock:released') {
-    const { contaId } = data;
-    if (contaId) setAccountState(contaId, 'idle');
-    atualizarLocksAtivos();
+  else if (type === 'transacao:conflito') {
+    const { origemId, destinoId } = data;
+    stats.contecoes++;
+    if (origemId) setAccountState(origemId, 'conflito');
+    if (destinoId) setAccountState(destinoId, 'conflito');
+
+    if (origemId && destinoId) {
+      const key = `${origemId}-${destinoId}`;
+      setArrowState(key, 'conflito');
+      setTimeout(() => {
+        removeArrow(key);
+        if (origemId) setAccountState(origemId, 'idle');
+        if (destinoId) setAccountState(destinoId, 'idle');
+        atualizarTransacoesAtivas();
+        renderizar();
+      }, 800);
+    }
+    atualizarTransacoesAtivas();
   }
 
   else if (type === 'transacao:success') {
@@ -250,7 +255,7 @@ function processarEvento(type, data) {
       removeArrow(key);
       if (origemId) setAccountState(origemId, 'idle');
       if (destinoId) setAccountState(destinoId, 'idle');
-      atualizarLocksAtivos();
+      atualizarTransacoesAtivas();
       renderizar();
     }, 1500);
   }
@@ -263,7 +268,7 @@ function processarEvento(type, data) {
     transacoesConcluidas = [];
     resultadosSimulacao = null;
     inicioSimulacaoTimestamp = Date.now();
-    stats = { transacoes: 0, locksAtivos: 0 };
+    stats = { transacoes: 0, locksAtivos: 0, contecoes: 0 };
     for (const c of contasData) {
       accountStates.set(c.id, { hubLineState: 'idle', borderState: 'idle' });
     }
@@ -300,7 +305,7 @@ function setAccountState(contaId, state) {
   entry.borderState = state;
 }
 
-function atualizarLocksAtivos() {
+function atualizarTransacoesAtivas() {
   let count = 0;
   for (const [, state] of accountStates) {
     if (state.hubLineState !== 'idle' && state.hubLineState !== 'success') count++;
@@ -434,12 +439,12 @@ function renderizarCards() {
     const statusEl = card.querySelector('.conta-status');
 
     const labels = {
-      idle: 'Livre', requesting: 'Solicitando', locked: 'Lock',
-      blocked: 'Bloqueado', timeout: 'Timeout', success: 'Sucesso'
+      idle: 'Livre', reading: 'Lendo', locked: 'Debitando',
+      conflito: 'Conflito', success: 'Sucesso'
     };
     const icons = {
-      idle: '⚪', requesting: '🔵', locked: '🟢',
-      blocked: '🔴', timeout: '🔴', success: '🟢'
+      idle: '⚪', reading: '🔵', locked: '🟢',
+      conflito: '⚡', success: '✅'
     };
 
     if (letterEl) letterEl.textContent = conta.letter;
@@ -517,6 +522,8 @@ function renderizarArrows() {
 function atualizarStats() {
   locksAtivos.textContent = stats.locksAtivos;
   totalTransacoes.textContent = stats.transacoes;
+  const contencaoEl = document.getElementById('totalContencoes');
+  if (contencaoEl) contencaoEl.textContent = stats.contecoes;
 }
 
 // ===== Results Overlay =====
@@ -672,7 +679,7 @@ function limpar() {
   contasData = [];
   accountStates.clear();
   activeArrows.clear();
-  stats = { transacoes: 0, locksAtivos: 0 };
+  stats = { transacoes: 0, locksAtivos: 0, contecoes: 0 };
   transacoesEmAndamento.clear();
   transacoesConcluidas = [];
   resultadosSimulacao = null;
