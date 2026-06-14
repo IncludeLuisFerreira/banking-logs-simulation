@@ -11,7 +11,8 @@
     "test": "jest --coverage",
     "stress": "NUM_CONTAS=10000 NUM_TRANSACOES=50000 node app.js",
     "clean": "rm relatorio.txt",
-    "api": "node api.js"
+    "api": "node api.js",
+    "seed": "node ../scripts/seed.js"
   },
   "engines": {
     "node": ">=18.0.0"

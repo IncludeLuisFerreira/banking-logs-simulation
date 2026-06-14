@@ -1,7 +1,7 @@
 const AuthService = require('../app/src/services/AuthService');
 
-const username = 'admin';
-const password = 'admin123';
+const username = process.env.SEED_USERNAME || 'admin';
+const password = process.env.SEED_PASSWORD || 'admin123';
 
 try {
   const usuario = AuthService.registrar(username, password);

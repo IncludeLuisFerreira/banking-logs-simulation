@@ -16,7 +16,7 @@ YELLOW := \033[0;33m
 RED := \033[0;31m
 NC := \033[0m # No Color
 
-.PHONY: help install start test stress clean lint docker-up docker-down fmt
+.PHONY: help install start test seed stress clean lint docker-up docker-down fmt
 
 # ============================================================
 # Comandos Principais
@@ -45,6 +45,12 @@ test:
 	@echo "$(YELLOW)→ Executando testes...$(NC)"
 	cd $(APP_DIR) && $(NPM) test
 	@echo "$(GREEN)✓ Testes finalizados!$(NC)"
+
+## seed        : Cria usuário admin no banco de dados
+seed:
+	@echo "$(YELLOW)→ Criando usuário admin...$(NC)"
+	cd $(APP_DIR) && node ../scripts/seed.js
+	@echo "$(GREEN)✓ Seed concluído!$(NC)"
 
 ## stress      : Executa o teste de estresse (10.000 contas / 50.000 transações)
 stress:
