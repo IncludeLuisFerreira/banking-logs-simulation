@@ -43,11 +43,7 @@ class Conta {
 
   remover() {
     this.ativa = false;
-    const waiters = this.mutex._waiters;
-    this.mutex._waiters = [];
-    waiters.forEach(resolve => {
-      resolve(() => {});
-    });
+    this.mutex.drainWaiters();
   }
 }
 

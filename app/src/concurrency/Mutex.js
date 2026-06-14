@@ -79,6 +79,15 @@ class Mutex extends EventEmitter {
   isLocked() {
     return this._locked;
   }
+
+  drainWaiters() {
+    const waiters = this._waiters;
+    this._waiters = [];
+    this._locked = false;
+    waiters.forEach(resolve => {
+      resolve(() => {});
+    });
+  }
 }
 
 module.exports = Mutex;
