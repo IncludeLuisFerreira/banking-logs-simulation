@@ -305,11 +305,28 @@ function renderizarCards() {
     const state = accountStates.get(conta.id);
     const borderState = state ? state.borderState : 'idle';
     card.className = `conta-card status-${borderState}`;
-    const statusEl = card.querySelector('.conta-status');
-    const labels = { idle: 'Livre', requesting: 'Solicitando', locked: 'Lock', blocked: 'Bloqueado', timeout: 'Timeout', success: 'Sucesso' };
-    statusEl.textContent = labels[borderState] || borderState;
+
+    const letterEl = card.querySelector('.conta-letter');
     const saldoEl = card.querySelector('.conta-saldo');
-    saldoEl.textContent = `R$ ${(conta.saldoCentavos / 100).toFixed(2)}`;
+    const barFillEl = card.querySelector('.conta-bar-fill');
+    const statusEl = card.querySelector('.conta-status');
+
+    const labels = {
+      idle: 'Livre', requesting: 'Solicitando', locked: 'Lock',
+      blocked: 'Bloqueado', timeout: 'Timeout', success: 'Sucesso'
+    };
+    const icons = {
+      idle: '⚪', requesting: '🔵', locked: '🟢',
+      blocked: '🔴', timeout: '🔴', success: '🟢'
+    };
+
+    if (letterEl) letterEl.textContent = conta.letter;
+    if (saldoEl) saldoEl.textContent = `R$ ${(conta.saldoCentavos / 100).toFixed(2)}`;
+    if (statusEl) statusEl.textContent = `${icons[borderState] || '⚪'} ${labels[borderState] || borderState}`;
+
+    const saldoInicial = 100000;
+    const pct = Math.max(0, Math.min(100, (conta.saldoCentavos / saldoInicial) * 100));
+    if (barFillEl) barFillEl.style.width = pct + '%';
   }
 }
 
@@ -346,7 +363,7 @@ function renderizarArrows() {
       marker.setAttribute('refY', '3.5');
       marker.setAttribute('orient', 'auto');
       marker.classList.add('arrow-marker');
-      const colors = { requesting: '#f0a030', locked: '#f0a030', blocked: '#dc3545', timeout: '#dc3545', success: '#28a745' };
+      const colors = { requesting: '#4fc3f7', locked: '#4fc3f7', blocked: '#ef5350', timeout: '#ef5350', success: '#00e676' };
       const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
       poly.setAttribute('points', '0 0, 10 3.5, 0 7');
       poly.setAttribute('fill', colors[entry.arrowState] || '#555');
@@ -355,6 +372,23 @@ function renderizarArrows() {
     }
     line.setAttribute('marker-end', `url(#${markerId})`);
     svgLines.appendChild(line);
+
+    // Floating value label
+    const midX = (parseFloat(line.getAttribute('x1')) + parseFloat(line.getAttribute('x2'))) / 2;
+    const midY = (parseFloat(line.getAttribute('y1')) + parseFloat(line.getAttribute('y2'))) / 2;
+
+    const floatLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    floatLabel.setAttribute('x', midX);
+    floatLabel.setAttribute('y', midY - 10);
+    floatLabel.setAttribute('text-anchor', 'middle');
+    floatLabel.classList.add('arrow-float-label');
+    floatLabel.setAttribute('data-key', key);
+    const concluida = transacoesConcluidas.find(t => t.origemId === origemId && t.destinoId === destinoId);
+    if (concluida && entry.arrowState === 'success') {
+      floatLabel.textContent = `R$ ${(concluida.valorCentavos / 100).toFixed(2)}`;
+      floatLabel.classList.add('arrow-float-label--visible');
+    }
+    svgLines.appendChild(floatLabel);
   }
 }
 

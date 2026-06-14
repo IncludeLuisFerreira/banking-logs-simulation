@@ -865,3 +865,21 @@
   from { opacity: 0; transform: translateX(-50%) translateY(10px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
+
+.arrow-float-label {
+  font-size: 10px;
+  fill: #00d4ff;
+  font-weight: bold;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.arrow-float-label--visible {
+  opacity: 1;
+  animation: float-up 2s ease-out forwards;
+}
+
+@keyframes float-up {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-20px); }
+}
