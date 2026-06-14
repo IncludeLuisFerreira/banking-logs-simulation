@@ -6,4 +6,5 @@ services:
       - "3000:3000"
     volumes:
       - ./app/logs:/app/logs
+      - ./app/public:/app/public
     restart: unless-stopped

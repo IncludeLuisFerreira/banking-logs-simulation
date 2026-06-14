@@ -68,3 +68,18 @@
   color: var(--color-text-muted);
   font-size: 0.875rem;
 }
+
+.logo-gallery {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.logo-gallery img {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.5rem;
+  background: #fff;
+}
