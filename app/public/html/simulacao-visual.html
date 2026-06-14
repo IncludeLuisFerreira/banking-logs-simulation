@@ -10,6 +10,7 @@
 <body>
   <main class="visual-page">
     <header class="visual-header">
+      <a href="dashboard.html" class="btn btn--back">← Voltar ao Dashboard</a>
       <h1>Simulação Visual de Locks</h1>
       <div class="visual-user">
         <span id="userDisplay" class="visual-username"></span>
@@ -24,6 +25,13 @@
       <button id="btnParar" class="btn btn--danger" disabled>■ Parar</button>
       <button id="btnLimpar" class="btn">Limpar</button>
       <span id="visualStatus" class="status-badge status-idle">Parado</span>
+    </div>
+
+    <div class="visual-controls visual-controls--speed">
+      <label class="form-label">Velocidade:</label>
+      <input type="range" id="speedSlider" class="speed-slider" min="100" max="2000" value="500" step="50">
+      <span id="speedLabel" class="speed-label">500ms</span>
+      <span class="speed-range">(100ms — 2000ms)</span>
     </div>
 
     <div class="visual-arena" id="visualArena">

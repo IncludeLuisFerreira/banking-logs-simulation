@@ -222,22 +222,6 @@
   stroke-linecap: round;
 }
 
-.arrow-line.requesting {
-  stroke: #f0a030;
-  stroke-dasharray: 6 4;
-  animation: dash-move 0.6s linear infinite;
-}
-
-.arrow-line.locked {
-  stroke: #28a745;
-}
-
-.arrow-line.blocked,
-.arrow-line.timeout {
-  stroke: #dc3545;
-  stroke-dasharray: 4 4;
-}
-
 @keyframes pulse-border {
   0%, 100% { box-shadow: 0 0 8px rgba(240,160,48,0.3); }
   50% { box-shadow: 0 0 16px rgba(240,160,48,0.6); }
@@ -260,4 +244,105 @@
 .btn--danger:disabled {
   background: #6c757d;
   cursor: not-allowed;
+}
+
+/* Back button */
+.btn--back {
+  background: transparent;
+  color: #8ab4f8;
+  border: 1px solid #8ab4f8;
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+.btn--back:hover {
+  background: rgba(138, 180, 248, 0.1);
+}
+
+/* Speed controls row */
+.visual-controls--speed {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 8px;
+  margin-top: -8px;
+}
+
+/* Slider */
+.speed-slider {
+  width: 160px;
+  accent-color: #8ab4f8;
+  cursor: pointer;
+}
+.speed-label {
+  font-size: 13px;
+  font-weight: bold;
+  color: #8ab4f8;
+  min-width: 50px;
+}
+.speed-range {
+  font-size: 11px;
+  color: #888;
+}
+
+/* Hub lines (Bank → Account) */
+.hub-line {
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+}
+.hub-line.idle {
+  stroke: #555;
+  stroke-dasharray: 5 4;
+}
+.hub-line.requesting {
+  stroke: #f0a030;
+  stroke-dasharray: 6 4;
+  animation: dash-move 0.6s linear infinite;
+}
+.hub-line.locked {
+  stroke: #f0a030;
+}
+.hub-line.blocked,
+.hub-line.timeout {
+  stroke: #dc3545;
+}
+.hub-line.success {
+  stroke: #28a745;
+  transition: stroke 2s ease-out;
+}
+
+/* Arrow lines (Account → Account) */
+.arrow-line.requesting {
+  stroke: #f0a030;
+  stroke-dasharray: 6 4;
+  animation: dash-move 0.6s linear infinite;
+}
+.arrow-line.locked {
+  stroke: #f0a030;
+}
+.arrow-line.blocked,
+.arrow-line.timeout {
+  stroke: #dc3545;
+}
+.arrow-line.success {
+  stroke: #28a745;
+  transition: stroke 2s ease-out;
+}
+
+/* Status badges (from dashboard.css, needed here too) */
+.status-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.status-idle {
+  background: #e0e0e0;
+  color: #616161;
+}
+.status-running {
+  background: #e8f5e9;
+  color: #2e7d32;
 }
