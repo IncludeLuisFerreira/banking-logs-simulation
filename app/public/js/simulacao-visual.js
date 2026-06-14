@@ -552,8 +552,8 @@ function animarNumeros(elementId, start, end, duration) {
 // ===== Account Positioning =====
 function renderizarContas(contas) {
   const rect = visualArena.getBoundingClientRect();
-  const arenaWidth = rect.width - 220;
-  const centerX = arenaWidth / 2 + 220;
+  const arenaWidth = rect.width - 230;
+  const centerX = arenaWidth / 2 + 230;
   const centerY = rect.height / 2;
   const radius = Math.min(arenaWidth / 2, centerY) - 90;
 
@@ -574,7 +574,8 @@ function renderizarContas(contas) {
     card.innerHTML = `
       <div class="conta-letter">${conta.letter}</div>
       <div class="conta-saldo">R$ ${(conta.saldoCentavos / 100).toFixed(2)}</div>
-      <div class="conta-status">Livre</div>
+      <div class="conta-bar"><div class="conta-bar-fill" style="width:100%"></div></div>
+      <div class="conta-status">⚪ Livre</div>
     `;
     visualAccounts.appendChild(card);
   });
@@ -687,8 +688,7 @@ speedSlider.addEventListener('input', () => {
   configurarVelocidade(ms);
 });
 
-// ===== Transaction Log =====
-const transacaoLogs = document.getElementById('transacaoLogs');
+// ===== Panel Clear =====
 const btnLimparLogTransacoes = document.getElementById('btnLimparLogTransacoes');
 
 btnLimparLogTransacoes.addEventListener('click', () => {
