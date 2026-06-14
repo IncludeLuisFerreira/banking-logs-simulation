@@ -169,8 +169,11 @@ function configurarVelocidade(ms) {
 
 function processarTick() {
   if (eventBuffer.length === 0) return;
-  const event = eventBuffer.shift();
-  processarEvento(event.type, event.data);
+  const batchSize = Math.min(eventBuffer.length, Math.max(1, Math.floor(eventBuffer.length / 20)));
+  for (let i = 0; i < batchSize; i++) {
+    const event = eventBuffer.shift();
+    processarEvento(event.type, event.data);
+  }
   renderizar();
 }
 
@@ -280,6 +283,10 @@ function processarEvento(type, data) {
   }
 
   else if (type === 'simulacao-visual:finalizada' || type === 'simulacao-visual:parada') {
+    while (eventBuffer.length > 0) {
+      const ev = eventBuffer.shift();
+      processarEvento(ev.type, ev.data);
+    }
     visualStatus.textContent = type === 'simulacao-visual:finalizada' ? 'Concluída' : 'Parado';
     visualStatus.className = 'status-badge status-idle';
     btnParar.disabled = true;
@@ -570,12 +577,16 @@ function renderizarContas(contas) {
   const rect = visualArena.getBoundingClientRect();
   const centerX = rect.width / 2;
   const centerY = rect.height / 2;
-  const radius = Math.min(centerX, centerY) - 90;
+  const maxRadius = Math.min(centerX, centerY) - 60;
+  const num = contas.length;
+  const arcPerAccount = num > 0 ? (2 * Math.PI * maxRadius) / num : 0;
+  const idealCardWidth = Math.min(120, Math.max(50, Math.floor(arcPerAccount * 0.75)));
+  const radius = Math.min(maxRadius, (idealCardWidth * num) / (2 * Math.PI * 0.75));
 
   visualAccounts.innerHTML = '';
 
   contas.forEach((conta, i) => {
-    const angle = (i / contas.length) * 2 * Math.PI - Math.PI / 2;
+    const angle = (i / num) * 2 * Math.PI - Math.PI / 2;
     const x = centerX + radius * Math.cos(angle);
     const y = centerY + radius * Math.sin(angle);
     conta._x = x;
@@ -586,8 +597,12 @@ function renderizarContas(contas) {
     card.id = `conta-${conta.id}`;
     card.style.left = x + 'px';
     card.style.top = y + 'px';
+    if (idealCardWidth < 90) {
+      card.style.width = idealCardWidth + 'px';
+      card.style.fontSize = Math.max(8, Math.min(12, idealCardWidth / 10)) + 'px';
+    }
     card.innerHTML = `
-      <div class="conta-letter">${conta.letter}</div>
+      <div class="conta-letter" style="${idealCardWidth < 90 ? `width:${idealCardWidth * 0.28}px;height:${idealCardWidth * 0.28}px;font-size:${Math.max(9, idealCardWidth * 0.13)}px` : ''}">${conta.letter}</div>
       <div class="conta-saldo">R$ ${(conta.saldoCentavos / 100).toFixed(2)}</div>
       <div class="conta-bar"><div class="conta-bar-fill" style="width:100%"></div></div>
       <div class="conta-status">⚪ Livre</div>

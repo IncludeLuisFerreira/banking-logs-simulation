@@ -581,6 +581,7 @@ body:has(.visual-page) {
   pointer-events: auto;
   width: 100px;
   padding: 12px;
+  box-sizing: border-box;
   border-radius: 12px;
   text-align: center;
   background: rgba(16, 26, 56, 0.85);
