@@ -19,8 +19,22 @@
     </header>
 
     <div class="visual-controls">
+      <label class="form-label">Modo:</label>
+      <label class="radio-label"><input type="radio" name="simMode" value="nxn" checked> NxN</label>
+      <label class="radio-label"><input type="radio" name="simMode" value="random"> Aleatório</label>
+
+      <span class="control-separator"></span>
+
       <label class="form-label">Nº de contas:</label>
-      <input type="number" id="inputNumContas" class="form-input" value="8" min="5" max="15" style="width:80px">
+      <input type="number" id="inputNumContas" class="form-input" value="8" min="5" max="15">
+
+      <div id="randomControls" class="random-controls" hidden>
+        <label class="form-label">Transações:</label>
+        <input type="number" id="inputTransMin" class="form-input input-small" value="15" min="1" placeholder="mín">
+        <span class="form-label">~</span>
+        <input type="number" id="inputTransMax" class="form-input input-small" value="40" min="1" placeholder="máx">
+      </div>
+
       <button id="btnIniciar" class="btn btn--primary">▶ Iniciar</button>
       <button id="btnParar" class="btn btn--danger" disabled>■ Parar</button>
       <button id="btnLimpar" class="btn">Limpar</button>
@@ -44,7 +58,16 @@
           <span>Locks ativos: <strong id="locksAtivos">0</strong></span>
         </div>
       </div>
+      <div class="visual-center visual-center--worker" id="visualCenterWorker">
+        <div class="center-icon">⚙️</div>
+        <div class="center-label">Thread Pool</div>
+        <div class="center-stats">
+          <span>Workers ativos: <strong id="workersAtivos">0</strong></span>
+          <span>Total: <strong id="workersTotal">0</strong></span>
+        </div>
+      </div>
       <div class="visual-accounts" id="visualAccounts"></div>
+      <div class="visual-workers" id="visualWorkers"></div>
     </div>
 
     <div class="visual-legend">

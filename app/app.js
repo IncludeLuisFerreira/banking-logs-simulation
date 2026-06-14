@@ -113,8 +113,12 @@ app.post('/simulacao/stop', autenticar, (req, res) => {
 
 app.post('/simulacao/visual', autenticar, async (req, res) => {
   try {
-    const { numContas } = req.body;
-    const resultado = await simulacaoVisual.iniciar(parseInt(numContas) || 8);
+    const { numContas, mode, transacaoRange } = req.body;
+    const resultado = await simulacaoVisual.iniciar(
+      parseInt(numContas) || 8,
+      mode || 'nxn',
+      transacaoRange || {}
+    );
     if (resultado.error) {
       return res.status(400).json({ erro: resultado.error });
     }
