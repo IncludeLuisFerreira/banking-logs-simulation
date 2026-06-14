@@ -84,7 +84,7 @@ async function carregarUsuario() {
     }
     const dados = await resposta.json();
     const nome = dados.username || 'usuário';
-    
+    userDisplay.textContent = nome;
   } catch (erro) {
     console.error('Erro ao carregar usuário:', erro);
     exibirFeedback('Erro de conexão. Redirecionando...', 'error');
