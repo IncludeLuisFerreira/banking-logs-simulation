@@ -12,12 +12,12 @@ class Mutex extends EventEmitter {
     this.emit('lock:request', { ...context, timestamp: requestTime });
     return new Promise((resolve) => {
       const release = () => {
-        this.emit('lock:released', { ...context, timestamp: Date.now() });
         if (this._waiters.length > 0) {
           const next = this._waiters.shift();
           next(release);
         } else {
           this._locked = false;
+          this.emit('lock:released', { ...context, timestamp: Date.now() });
         }
       };
 
@@ -43,12 +43,12 @@ class Mutex extends EventEmitter {
     if (!this._locked) {
       this._locked = true;
       const release = () => {
-        this.emit('lock:released', { ...context, timestamp: Date.now() });
         if (this._waiters.length > 0) {
           const next = this._waiters.shift();
           next(release);
         } else {
           this._locked = false;
+          this.emit('lock:released', { ...context, timestamp: Date.now() });
         }
       };
       this.emit('lock:acquired', { ...context, waitTimeMs: 0, timestamp: Date.now() });
@@ -56,7 +56,8 @@ class Mutex extends EventEmitter {
     }
 
     return new Promise((resolve) => {
-      this.emit('lock:blocked', { ...context, timestamp: Date.now() });
+      const enqueueTime = Date.now();
+      this.emit('lock:blocked', { ...context, timestamp: enqueueTime });
 
       const timer = setTimeout(() => {
         const index = this._waiters.indexOf(onResolve);
@@ -67,7 +68,7 @@ class Mutex extends EventEmitter {
 
       const onResolve = (release) => {
         clearTimeout(timer);
-        const waitTimeMs = Date.now() - requestTime;
+        const waitTimeMs = Date.now() - enqueueTime;
         this.emit('lock:acquired', { ...context, waitTimeMs, timestamp: Date.now() });
         resolve({ acquired: true, release });
       };
