@@ -18,24 +18,75 @@
       </div>
     </header>
 
-    <section class="dashboard-content">
-      <div class="dashboard-card">
-        <h2>Bem-vindo, <span id="userWelcome"></span>!</h2>
-        <p class="dashboard-placeholder">A simulação bancária estará disponível em breve.</p>
-        <div class="logo-gallery">
-          <img src="../img/Tundra-logo.png" alt="normal" width="80">
-          <img src="../img/Tundra-logo-sucess.png" alt="sucesso" width="80">
-          <img src="../img/Tundra-logo-error.png" alt="erro" width="80">
-          <img src="../img/Tundra-logo-deadlock.png" alt="deadlock" width="80">
-          <img src="../img/Tundra-logo-invasorDetected.png" alt="invasor" width="80">
+    <div class="dashboard-grid">
+      <section class="dashboard-card panel-contas">
+        <h2>Contas Ativas</h2>
+        <div class="panel-add-conta">
+          <input type="number" id="inputSaldo" class="form-input" placeholder="Saldo inicial (centavos)" value="100000" min="1">
+          <input type="text" id="inputNome" class="form-input" placeholder="Nome (opcional)">
+          <button id="btnAddConta" class="btn btn--primary panel-btn">Adicionar</button>
         </div>
+        <div class="table-wrapper">
+          <table class="contas-table" id="contasTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Saldo (R$)</th>
+                <th>Status</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="contasBody"></tbody>
+          </table>
+        </div>
+        <p class="table-empty" id="contasEmpty">Nenhuma conta cadastrada.</p>
+      </section>
+
+      <section class="dashboard-card panel-simulacao">
+        <h2>Simulação de Estresse</h2>
+        <div class="sim-controls">
+          <button id="btnIniciarSim" class="btn btn--primary panel-btn">▶ Simulação NxN</button>
+          <button id="btnPararSim" class="btn panel-btn btn--danger" disabled>■ Parar</button>
+        </div>
+        <div class="sim-status">
+          <p>Status: <span id="simStatus" class="status-badge status-idle">Parado</span></p>
+          <p>Transações: <span id="simTransacoes">0</span></p>
+        </div>
+        <div class="sim-counters">
+          <div class="counter">
+            <span class="counter-value" id="counterLocksOk">0</span>
+            <span class="counter-label">Locks OK</span>
+          </div>
+          <div class="counter">
+            <span class="counter-value" id="counterLocksBloq">0</span>
+            <span class="counter-label">Bloqueios</span>
+          </div>
+          <div class="counter">
+            <span class="counter-value" id="counterTimeouts">0</span>
+            <span class="counter-label">Timeouts</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="dashboard-card panel-logs">
+      <div class="panel-logs-header">
+        <h2>Logs em Tempo Real</h2>
+        <div class="panel-logs-actions">
+          <button id="btnLimparLogs" class="btn panel-btn btn--small">🧹 Limpar</button>
+          <button id="btnExportarLogs" class="btn panel-btn btn--small">📥 Exportar</button>
+        </div>
+      </div>
+      <div class="logs-container" id="logsContainer">
+        <p class="logs-placeholder">Aguardando eventos...</p>
       </div>
     </section>
 
     <div class="feedback" id="feedback" role="alert" aria-live="polite" hidden></div>
   </main>
 
-  <script src="js/api.js"></script>
-  <script src="js/dashboard.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/dashboard.js"></script>
 </body>
 </html>
