@@ -162,7 +162,9 @@ function processarEvento(type, data) {
     const { contaId, origemId, destinoId } = data;
     if (contaId) setAccountState(contaId, 'timeout');
     if (origemId && destinoId) {
-      transacoesEmAndamento.delete(`${origemId}-${destinoId}`);
+      const key = `${origemId}-${destinoId}`;
+      transacoesEmAndamento.delete(key);
+      removeArrow(key);
     }
   }
 
@@ -234,7 +236,9 @@ function processarEvento(type, data) {
       const sucesso = transacoesConcluidas.length;
       const contencao = total > 0 ? Math.round(((total - sucesso) / total) * 100) : 0;
       resultadosSimulacao = { total, sucesso, contencao, duracao, timestamp: Date.now() };
-      mostrarResultados(resultadosSimulacao);
+      if (typeof mostrarResultados === 'function') {
+        mostrarResultados(resultadosSimulacao);
+      }
       visualStatus.className = 'status-badge status-concluida';
     }
     renderizar();
