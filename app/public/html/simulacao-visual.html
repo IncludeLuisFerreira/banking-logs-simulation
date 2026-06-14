@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banking Simulation — Visual</title>
+  <link rel="stylesheet" href="../css/login.css">
+  <link rel="stylesheet" href="../css/simulacao-visual.css">
+</head>
+<body>
+  <main class="visual-page">
+    <header class="visual-header">
+      <h1>Simulação Visual de Locks</h1>
+      <div class="visual-user">
+        <span id="userDisplay" class="visual-username"></span>
+        <button id="btnLogout" class="btn btn--primary">Sair</button>
+      </div>
+    </header>
+
+    <div class="visual-controls">
+      <label class="form-label">Nº de contas:</label>
+      <input type="number" id="inputNumContas" class="form-input" value="8" min="5" max="15" style="width:80px">
+      <button id="btnIniciar" class="btn btn--primary">▶ Iniciar</button>
+      <button id="btnParar" class="btn btn--danger" disabled>■ Parar</button>
+      <button id="btnLimpar" class="btn">Limpar</button>
+      <span id="visualStatus" class="status-badge status-idle">Parado</span>
+    </div>
+
+    <div class="visual-arena" id="visualArena">
+      <svg id="svgLines" class="visual-svg"></svg>
+      <div class="visual-center" id="visualCenter">
+        <div class="center-icon">📡</div>
+        <div class="center-label">Banco Central</div>
+        <div class="center-stats">
+          <span>Transferências: <strong id="totalTransacoes">0</strong></span>
+          <span>Locks ativos: <strong id="locksAtivos">0</strong></span>
+        </div>
+      </div>
+      <div class="visual-accounts" id="visualAccounts"></div>
+    </div>
+
+    <div class="visual-legend">
+      <span class="legend-item"><span class="legend-color requesting"></span> Solicitando</span>
+      <span class="legend-item"><span class="legend-color locked"></span> Lock Adquirido</span>
+      <span class="legend-item"><span class="legend-color blocked"></span> Bloqueado</span>
+      <span class="legend-item"><span class="legend-color idle"></span> Livre</span>
+    </div>
+
+    <div class="feedback" id="feedback" role="alert" hidden></div>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/simulacao-visual.js"></script>
+</body>
+</html>
