@@ -15,7 +15,6 @@ class SimulacaoService {
   adicionarConta(saldoInicialCentavos = 100000, nome = '') {
     const conta = new Conta(this.nextId++, saldoInicialCentavos);
     this.contas.set(conta.id, { conta, nome });
-    this.lockLogger.connectConta(conta);
     this.lockLogger.onEvent('conta:adicionada', {
       contaId: conta.id,
       nome,
@@ -28,7 +27,6 @@ class SimulacaoService {
     const entry = this.contas.get(id);
     if (!entry) return false;
     const { conta, nome } = entry;
-    this.lockLogger.disconnectConta(conta);
     conta.remover();
     this.contas.delete(id);
     this.lockLogger.onEvent('conta:removida', { contaId: id, nome });
