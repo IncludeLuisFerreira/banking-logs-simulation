@@ -270,10 +270,76 @@ function removeArrow(key) {
 }
 
 // ===== MODULE 4: Renderer =====
+function renderizarPainelTransacoes() {
+  const painelEmAndamento = document.getElementById('painelEmAndamento');
+  const painelConcluidas = document.getElementById('painelConcluidas');
+  const contadorEmAndamento = document.getElementById('contadorEmAndamento');
+  const contadorConcluidas = document.getElementById('contadorConcluidas');
+  const painelContador = document.getElementById('painelContador');
+
+  if (!painelEmAndamento || !painelConcluidas) return;
+
+  if (contadorEmAndamento) contadorEmAndamento.textContent = transacoesEmAndamento.size;
+  if (contadorConcluidas) contadorConcluidas.textContent = transacoesConcluidas.length;
+  if (painelContador) {
+    painelContador.textContent = `Em andamento: ${transacoesEmAndamento.size} | Concluídas: ${transacoesConcluidas.length}`;
+  }
+
+  // Em Andamento
+  if (transacoesEmAndamento.size === 0) {
+    painelEmAndamento.innerHTML = '<p class="painel-placeholder">Nenhuma transação em andamento.</p>';
+  } else {
+    let html = '';
+    for (const [key, entry] of transacoesEmAndamento) {
+      const [origemId, destinoId] = key.split('-').map(Number);
+      const contaOrigem = contasData.find(c => c.id === origemId);
+      const contaDestino = contasData.find(c => c.id === destinoId);
+      const origemLetter = contaOrigem ? contaOrigem.letter : origemId;
+      const destinoLetter = contaDestino ? contaDestino.letter : destinoId;
+      html += `
+        <div class="transacao-entry transacao-entry--in-progress">
+          <span class="entry-spinner"></span>
+          <span class="entry-origem">${origemLetter}</span>
+          <span class="entry-seta">→</span>
+          <span class="entry-destino">${destinoLetter}</span>
+          <span class="entry-valor">processando...</span>
+        </div>`;
+    }
+    painelEmAndamento.innerHTML = html;
+  }
+
+  // Concluídas
+  if (transacoesConcluidas.length === 0) {
+    painelConcluidas.innerHTML = '<p class="painel-placeholder">Nenhuma transação concluída.</p>';
+  } else {
+    const MAX_VISIVEIS = 100;
+    const exibir = transacoesConcluidas.slice(-MAX_VISIVEIS);
+    let html = '';
+    for (const t of exibir) {
+      const contaOrigem = contasData.find(c => c.id === t.origemId);
+      const contaDestino = contasData.find(c => c.id === t.destinoId);
+      const origemLetter = contaOrigem ? contaOrigem.letter : t.origemId;
+      const destinoLetter = contaDestino ? contaDestino.letter : t.destinoId;
+      const valor = (t.valorCentavos / 100).toFixed(2);
+      html += `
+        <div class="transacao-entry transacao-entry--completed">
+          <span class="entry-check">✓</span>
+          <span class="entry-origem">${origemLetter}</span>
+          <span class="entry-seta">→</span>
+          <span class="entry-destino">${destinoLetter}</span>
+          <span class="entry-valor">R$ ${valor}</span>
+        </div>`;
+    }
+    painelConcluidas.innerHTML = html;
+    painelConcluidas.scrollTop = painelConcluidas.scrollHeight;
+  }
+}
+
 function renderizar() {
   renderizarHubLines();
   renderizarCards();
   renderizarArrows();
+  renderizarPainelTransacoes();
   atualizarStats();
 }
 
@@ -537,31 +603,10 @@ speedSlider.addEventListener('input', () => {
 // ===== Transaction Log =====
 const transacaoLogs = document.getElementById('transacaoLogs');
 const btnLimparLogTransacoes = document.getElementById('btnLimparLogTransacoes');
-const MAX_LOG_ENTRIES = 100;
-
-function adicionarLogTransacao(origemId, destinoId, valorCentavos) {
-  const placeholder = transacaoLogs.querySelector('.transacao-placeholder');
-  if (placeholder) placeholder.remove();
-
-  const entry = document.createElement('div');
-  entry.className = 'transacao-entry';
-  const valor = (valorCentavos / 100).toFixed(2);
-  entry.innerHTML = `
-    <span class="trans-arrow">${origemId}</span>
-    <span class="trans-seta">→</span>
-    <span class="trans-arrow">${destinoId}</span>
-    <span class="trans-valor">R$ ${valor}</span>
-  `;
-  transacaoLogs.appendChild(entry);
-
-  while (transacaoLogs.children.length > MAX_LOG_ENTRIES) {
-    transacaoLogs.removeChild(transacaoLogs.firstChild);
-  }
-  transacaoLogs.scrollTop = transacaoLogs.scrollHeight;
-}
 
 btnLimparLogTransacoes.addEventListener('click', () => {
-  transacaoLogs.innerHTML = '<p class="transacao-placeholder">Nenhuma transação ainda.</p>';
+  transacoesConcluidas = [];
+  renderizar();
 });
 
 // ===== Init =====
