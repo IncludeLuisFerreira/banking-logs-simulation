@@ -9,7 +9,7 @@ const STATES = {
 };
 
 class GerenciadorTransacoes {
-  constructor() {
+  constructor(lockLogger = null) {
     this.fila = new AsyncPriorityQueue((a, b) => {
       return b.calcularPrioridade() - a.calcularPrioridade();
     });
@@ -19,21 +19,25 @@ class GerenciadorTransacoes {
     this.taskEmProcesso = 0;
     this.tempoTotalEsperaMilis = 0;
     this.workers = [];
+    this.lockLogger = lockLogger;
+    this.totalTransacoes = 0;
   }
 
   adicionarTransacao(t) {
     this.fila.push(t);
+    this.totalTransacoes++;
   }
 
   start() {
     this.relatorio.setQuantidadeTransacoes(this.fila.size());
     this.running = true;
     for (let i = 0; i < this.NUM_WORKERS; i++) {
-      this.workers.push(this.processarTransacao());
+      this.workers.push(this.processarTransacao(i));
     }
   }
 
-  async processarTransacao() {
+  async processarTransacao(workerId) {
+    const threadId = `worker-${workerId}`;
     while (this.running) {
       let task = null;
       try {
@@ -46,7 +50,7 @@ class GerenciadorTransacoes {
         const saida = task.getTempoEntrada();
         const tempoEspera = Date.now() - saida;
         const tempoInicio = process.hrtime.bigint();
-        const resultado = await this.executar(task);
+        const resultado = await this.executar(task, threadId);
         const tempoFim = process.hrtime.bigint();
         const tempoProcessamento = Number(tempoFim - tempoInicio);
 
@@ -56,6 +60,15 @@ class GerenciadorTransacoes {
         switch (resultado) {
           case STATES.SUCCESS:
             this.relatorio.push(task, tempoEspera);
+            if (this.lockLogger) {
+              this.lockLogger.emit('transacao:success', {
+                threadId,
+                origemId: task.getOrigem().getId(),
+                destinoId: task.getDestino().getId(),
+                valorCentavos: task.getValorCentavos(),
+                timestamp: Date.now()
+              });
+            }
             break;
           case STATES.INSUFICIENT_FUNDS:
             this.relatorio.incrementaSaldoInsuficiente();
@@ -79,9 +92,11 @@ class GerenciadorTransacoes {
     }
   }
 
-  async executar(t) {
+  async executar(t, threadId = 'unknown') {
     const c1 = t.getOrigem();
     const c2 = t.getDestino();
+
+    if (!c1.ativa || !c2.ativa) return STATES.INTERRUPTED;
 
     let primeiro, segundo;
     if (c1.getId() < c2.getId()) {
@@ -99,17 +114,25 @@ class GerenciadorTransacoes {
     let lock2 = null;
 
     try {
-      lock1 = await primeiro.tryLock(500);
+      const context = { threadId, origemId: t.getOrigem().getId(), destinoId: t.getDestino().getId() };
+
+      lock1 = await primeiro.tryLock(500, context);
       if (!lock1) {
         return STATES.LOCK_FAILED;
       }
 
       if (segundo !== null) {
-        lock2 = await segundo.tryLock(500);
+        lock2 = await segundo.tryLock(500, context);
         if (!lock2) {
           if (lock1) lock1.unlock();
           return STATES.LOCK_FAILED;
         }
+      }
+
+      if (!c1.ativa || !c2.ativa) {
+        if (lock2) lock2.unlock();
+        if (lock1) lock1.unlock();
+        return STATES.INTERRUPTED;
       }
 
       if (t.getOrigem().sacar(t.getValorCentavos())) {
@@ -137,6 +160,15 @@ class GerenciadorTransacoes {
 
   getCount() {
     return this.fila.size();
+  }
+
+  getStatus() {
+    return {
+      running: this.running,
+      filaSize: this.fila.size(),
+      taskEmProcesso: this.taskEmProcesso,
+      totalTransacoes: this.totalTransacoes
+    };
   }
 }
 
