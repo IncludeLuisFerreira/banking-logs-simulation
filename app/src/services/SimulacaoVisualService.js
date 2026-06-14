@@ -9,7 +9,7 @@ class SimulacaoVisualService {
     this.running = false;
     this._generation = 0;
     this.gerenciador = null;
-    this.NUM_WORKERS = 10;
+    this.NUM_WORKERS = 50;
   }
 
   getContas() {
@@ -70,8 +70,8 @@ class SimulacaoVisualService {
 
   async iniciar(numContas, mode = 'nxn', transacaoRange = {}) {
     if (this.running) return { error: 'Simulação visual já em andamento' };
-    if (!Number.isInteger(numContas) || numContas < 5 || numContas > 15) {
-      return { error: 'Número de contas deve ser um inteiro entre 5 e 15' };
+    if (!Number.isInteger(numContas) || numContas < 5 || numContas > 30) {
+      return { error: 'Número de contas deve ser um inteiro entre 5 e 30' };
     }
 
     this.running = true;
@@ -103,7 +103,7 @@ class SimulacaoVisualService {
 
     this.gerenciador = new GerenciadorTransacoes(this.lockLogger);
     this.gerenciador.NUM_WORKERS = numWorkers;
-    this.gerenciador.workerDelayMs = 80;
+    this.gerenciador.workerDelayMs = 150;
     this.gerenciador.source = 'visual';
     for (const t of transacoes) {
       this.gerenciador.adicionarTransacao(t);

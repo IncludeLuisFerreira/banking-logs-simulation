@@ -229,7 +229,7 @@ function processarEvento(type, data) {
         if (destinoId) setAccountState(destinoId, 'idle');
         atualizarTransacoesAtivas();
         renderizar();
-      }, 800);
+      }, 2000);
     }
     atualizarTransacoesAtivas();
   }
@@ -602,8 +602,8 @@ function renderizarContas(contas) {
 // ===== Simulation Lifecycle =====
 async function iniciarSimulacao() {
   const numContas = parseInt(inputNumContas.value) || 8;
-  if (numContas < 5 || numContas > 15) {
-    exibirFeedback('Número de contas deve ser entre 5 e 15', 'error');
+  if (numContas < 5 || numContas > 30) {
+    exibirFeedback('Número de contas deve ser entre 5 e 30', 'error');
     return;
   }
 
