@@ -27,7 +27,7 @@ class SimulacaoVisualService {
       const letter = String.fromCharCode(65 + i);
       const conta = new Conta(i + 1, 100000);
       this.contas.set(conta.id, { conta, letter });
-      this.lockLogger.connectConta(conta);
+      this.lockLogger.onEvent('conta:adicionada', { contaId: conta.id, saldoCentavos: conta.getSaldoCentavos() });
     }
   }
 
@@ -146,7 +146,7 @@ class SimulacaoVisualService {
       this.gerenciador.running = false;
     }
     for (const { conta } of this.contas.values()) {
-      this.lockLogger.disconnectConta(conta);
+      this.lockLogger.onEvent('conta:removida', { contaId: conta.id });
       conta.remover();
     }
     this.contas.clear();
