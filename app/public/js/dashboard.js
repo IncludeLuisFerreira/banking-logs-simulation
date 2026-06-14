@@ -1,5 +1,4 @@
 const userDisplay = document.getElementById('userDisplay');
-const userWelcome = document.getElementById('userWelcome');
 const btnLogout = document.getElementById('btnLogout');
 const feedback = document.getElementById('feedback');
 
@@ -85,8 +84,7 @@ async function carregarUsuario() {
     }
     const dados = await resposta.json();
     const nome = dados.username || 'usuário';
-    userDisplay.textContent = nome;
-    userWelcome.textContent = nome;
+    
   } catch (erro) {
     console.error('Erro ao carregar usuário:', erro);
     exibirFeedback('Erro de conexão. Redirecionando...', 'error');
