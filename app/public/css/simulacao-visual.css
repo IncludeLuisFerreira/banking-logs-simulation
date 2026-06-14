@@ -721,6 +721,34 @@ body:has(.visual-page) {
   color: #69f0ae;
 }
 
+/* --- OCC States --- */
+.conta-card.status-conflito {
+  border-color: #ff6d00;
+  box-shadow: 0 0 20px rgba(255, 109, 0, 0.5);
+  animation: pulse-conflito 0.5s ease-in-out 3;
+}
+.conta-card.status-conflito .conta-letter {
+  background: rgba(255, 109, 0, 0.3);
+  color: #ffab40;
+}
+.conta-card.status-conflito .conta-status {
+  background: rgba(255, 109, 0, 0.25);
+  color: #ffab40;
+}
+
+.conta-card.status-reading {
+  border-color: #4fc3f7;
+  box-shadow: 0 0 12px rgba(79, 195, 247, 0.2);
+}
+.conta-card.status-reading .conta-letter {
+  background: rgba(79, 195, 247, 0.15);
+  color: #4fc3f7;
+}
+.conta-card.status-reading .conta-status {
+  background: rgba(79, 195, 247, 0.15);
+  color: #4fc3f7;
+}
+
 @keyframes pulse-success {
   0% { box-shadow: 0 0 0 rgba(0, 230, 118, 0); }
   50% { box-shadow: 0 0 30px rgba(0, 230, 118, 0.6); }
@@ -730,6 +758,11 @@ body:has(.visual-page) {
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 12px rgba(79, 195, 247, 0.2); }
   50% { box-shadow: 0 0 24px rgba(79, 195, 247, 0.4); }
+}
+
+@keyframes pulse-conflito {
+  0%, 100% { box-shadow: 0 0 12px rgba(255, 109, 0, 0.3); }
+  50% { box-shadow: 0 0 28px rgba(255, 109, 0, 0.6); }
 }
 
 /* --- SVG Lines --- */
@@ -757,6 +790,32 @@ body:has(.visual-page) {
 .hub-line.success {
   stroke: #00e676;
   transition: stroke 2s ease-out;
+}
+
+.hub-line.conflito,
+.hub-line.conflict {
+  stroke: #ff6d00;
+  stroke-dasharray: 4 4;
+  animation: dash-move 0.4s linear infinite;
+}
+
+.hub-line.reading {
+  stroke: #4fc3f7;
+  stroke-dasharray: 6 4;
+  animation: dash-move 0.8s linear infinite;
+}
+
+.arrow-line.conflito,
+.arrow-line.conflict {
+  stroke: #ff6d00;
+  stroke-dasharray: 4 4;
+  animation: dash-move 0.4s linear infinite;
+}
+
+.arrow-line.reading {
+  stroke: #4fc3f7;
+  stroke-dasharray: 6 4;
+  animation: dash-move 0.8s linear infinite;
 }
 
 .arrow-line {
@@ -812,9 +871,9 @@ body:has(.visual-page) {
   border-radius: 50%;
 }
 
-.legend-dot.requesting { background: #4fc3f7; }
+.legend-dot.reading { background: #4fc3f7; }
 .legend-dot.locked { background: #00e676; }
-.legend-dot.blocked { background: #ef5350; }
+.legend-dot.conflito { background: #ff6d00; }
 .legend-dot.idle { background: rgba(85, 102, 119, 0.4); }
 
 /* --- Results Overlay --- */
