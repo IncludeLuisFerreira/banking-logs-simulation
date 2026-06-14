@@ -167,7 +167,35 @@ function processarEvento(type, data) {
   }
 
   else if (type === 'transacao:success') {
-    const { threadId } = data;
+    const { origemId, destinoId, valorCentavos, threadId } = data;
+    stats.transacoes++;
+
+    const contaOrigem = contasData.find(c => c.id === origemId);
+    const contaDestino = contasData.find(c => c.id === destinoId);
+    if (contaOrigem) contaOrigem.saldoCentavos -= valorCentavos;
+    if (contaDestino) contaDestino.saldoCentavos += valorCentavos;
+
+    adicionarLogTransacao(threadId, origemId, destinoId, valorCentavos);
+
+    const key = `${origemId}-${destinoId}`;
+    setArrowState(key, 'success');
+    setTimeout(() => {
+      removeArrow(key);
+      renderizar();
+    }, 2000);
+
+    if (origemId) setAccountState(origemId, 'idle');
+    if (destinoId) setAccountState(destinoId, 'idle');
+    const origHub = accountStates.get(origemId);
+    const destHub = accountStates.get(destinoId);
+    if (origHub) origHub.hubLineState = 'success';
+    if (destHub) destHub.hubLineState = 'success';
+    setTimeout(() => {
+      if (origemId) setAccountState(origemId, 'idle');
+      if (destinoId) setAccountState(destinoId, 'idle');
+      renderizar();
+    }, 2000);
+
     if (threadId) setWorkerState(threadId, 'idle', null);
   }
 
@@ -541,6 +569,36 @@ speedSlider.addEventListener('input', () => {
   const ms = parseInt(speedSlider.value);
   speedLabel.textContent = ms + 'ms';
   configurarVelocidade(ms);
+});
+
+// ===== Transaction Log =====
+const transacaoLogs = document.getElementById('transacaoLogs');
+const btnLimparLogTransacoes = document.getElementById('btnLimparLogTransacoes');
+const MAX_LOG_ENTRIES = 100;
+
+function adicionarLogTransacao(threadId, origemId, destinoId, valorCentavos) {
+  const placeholder = transacaoLogs.querySelector('.transacao-placeholder');
+  if (placeholder) placeholder.remove();
+
+  const entry = document.createElement('div');
+  entry.className = 'transacao-entry';
+  const valor = (valorCentavos / 100).toFixed(2);
+  const workerLabel = threadId ? threadId.replace('worker-', 'W') : '?';
+  entry.innerHTML = `
+    <span class="trans-thread">${workerLabel}</span>
+    <span class="trans-arrow">${origemId} → ${destinoId}</span>
+    <span class="trans-valor">R$ ${valor}</span>
+  `;
+  transacaoLogs.appendChild(entry);
+
+  while (transacaoLogs.children.length > MAX_LOG_ENTRIES) {
+    transacaoLogs.removeChild(transacaoLogs.firstChild);
+  }
+  transacaoLogs.scrollTop = transacaoLogs.scrollHeight;
+}
+
+btnLimparLogTransacoes.addEventListener('click', () => {
+  transacaoLogs.innerHTML = '<p class="transacao-placeholder">Nenhuma transação ainda.</p>';
 });
 
 // ===== Init =====
