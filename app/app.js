@@ -45,83 +45,94 @@ app.get('/auth/me', autenticar, (req, res) => {
   }
 });
 
-// --- Rotas da Simulação (protegidas) ---
-
-// TODO: adicionar refresh token
-// TODO: implementar rate limiting no login
-// TODO: adicionar roles (admin, operator)
+// --- Rotas da Simulação Dinâmica (protegidas) ---
 
 const Conta = require('./src/model/Conta');
 const Transacao = require('./src/model/Transacao');
 const GerenciadorTransacoes = require('./src/services/GerenciadorTransacoes');
+const simulacaoService = require('./src/services/SimulacaoService');
 
-app.post('/simulacao/iniciar', autenticar, async (req, res) => {
+app.get('/simulacao/contas', autenticar, (req, res) => {
   try {
-    const numContas = parseInt(req.body.numContas) || 1000;
-    const numTransacoes = parseInt(req.body.numTransacoes) || 5000;
-    const saldoInicial = parseInt(req.body.saldoInicial) || 100000;
-
-    const contas = [];
-    for (let i = 0; i < numContas; i++) {
-      contas.push(new Conta(i, saldoInicial));
-    }
-
-    const gerenciador = new GerenciadorTransacoes();
-
-    for (let i = 0; i < numTransacoes; i++) {
-      let origemIndex = Math.floor(Math.random() * numContas);
-      let destinoIndex = Math.floor(Math.random() * numContas);
-      while (origemIndex === destinoIndex) {
-        destinoIndex = Math.floor(Math.random() * numContas);
-      }
-      const origem = contas[origemIndex];
-      const destino = contas[destinoIndex];
-      const valor = Math.floor(Math.random() * 100000);
-      gerenciador.adicionarTransacao(new Transacao(origem, destino, valor));
-    }
-
-    const inicio = process.hrtime.bigint();
-    gerenciador.start();
-    await gerenciador.encerrar();
-    const fim = process.hrtime.bigint();
-
-    let somaTotal = 0;
-    for (const c of contas) {
-      somaTotal += c.getSaldoCentavos();
-    }
-
-    const tempoMs = Number(fim - inicio) / 1e6;
-    const consistente = Math.abs(somaTotal - (numContas * saldoInicial)) < 0.0001;
-
-    res.json({
-      status: consistente ? 'ok' : 'inconsistencia',
-      numContas,
-      numTransacoes,
-      saldoTotal: somaTotal,
-      saldoEsperado: numContas * saldoInicial,
-      tempoMs: tempoMs.toFixed(2),
-      consistente
-    });
+    const contas = simulacaoService.listarContas();
+    res.json(contas);
   } catch (erro) {
     res.status(500).json({ erro: erro.message });
   }
 });
 
-app.get('/simulacao/resultado', autenticar, (req, res) => {
+app.post('/simulacao/contas', autenticar, (req, res) => {
   try {
-    const fs = require('fs');
-    const path = require('path');
-    const relatorioPath = path.resolve(__dirname, 'relatorio.txt');
-
-    if (!fs.existsSync(relatorioPath)) {
-      return res.status(404).json({ erro: 'Nenhum relatório encontrado. Execute uma simulação primeiro.' });
-    }
-
-    const relatorio = fs.readFileSync(relatorioPath, 'utf-8');
-    res.type('text/plain').send(relatorio);
+    const { saldoInicial, nome } = req.body;
+    const conta = simulacaoService.adicionarConta(
+      parseInt(saldoInicial) || 100000,
+      nome || ''
+    );
+    res.status(201).json(conta);
   } catch (erro) {
     res.status(500).json({ erro: erro.message });
   }
+});
+
+app.delete('/simulacao/contas/:id', autenticar, (req, res) => {
+  try {
+    const removido = simulacaoService.removerConta(parseInt(req.params.id));
+    if (!removido) {
+      return res.status(404).json({ erro: 'Conta não encontrada' });
+    }
+    res.json({ status: 'removida' });
+  } catch (erro) {
+    res.status(500).json({ erro: erro.message });
+  }
+});
+
+app.post('/simulacao/stress', autenticar, async (req, res) => {
+  try {
+    const resultado = await simulacaoService.iniciarSimulacaoNxN();
+    if (resultado.error) {
+      return res.status(400).json({ erro: resultado.error });
+    }
+    res.json(resultado);
+  } catch (erro) {
+    res.status(500).json({ erro: erro.message });
+  }
+});
+
+app.post('/simulacao/stop', autenticar, (req, res) => {
+  try {
+    const resultado = simulacaoService.pararSimulacao();
+    res.json(resultado);
+  } catch (erro) {
+    res.status(500).json({ erro: erro.message });
+  }
+});
+
+app.get('/simulacao/stream', (req, res) => {
+  const token = req.query.token;
+  if (!token) {
+    return res.status(401).json({ erro: 'Token não fornecido' });
+  }
+  try {
+    const authService = require('./src/services/AuthService');
+    authService.validarToken(token);
+  } catch (e) {
+    return res.status(401).json({ erro: 'Token inválido' });
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+
+  res.write('event: connected\ndata: {}\n\n');
+
+  simulacaoService.lockLogger.addClient(res);
+
+  req.on('close', () => {
+    simulacaoService.lockLogger.removeClient(res);
+  });
 });
 
 // --- Tratamento de Erros Global ---
