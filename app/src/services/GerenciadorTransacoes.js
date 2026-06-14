@@ -124,14 +124,11 @@ class GerenciadorTransacoes {
       if (segundo !== null) {
         lock2 = await segundo.tryLock(500, context);
         if (!lock2) {
-          if (lock1) lock1.unlock();
           return STATES.LOCK_FAILED;
         }
       }
 
       if (!c1.ativa || !c2.ativa) {
-        if (lock2) lock2.unlock();
-        if (lock1) lock1.unlock();
         return STATES.INTERRUPTED;
       }
 
