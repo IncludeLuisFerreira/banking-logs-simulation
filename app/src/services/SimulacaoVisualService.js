@@ -1,5 +1,6 @@
 const Conta = require('../model/Conta');
 const Transacao = require('../model/Transacao');
+const GerenciadorTransacoes = require('./GerenciadorTransacoes');
 
 class SimulacaoVisualService {
   constructor(lockLogger) {
@@ -7,6 +8,7 @@ class SimulacaoVisualService {
     this.contas = new Map();
     this.running = false;
     this._generation = 0;
+    this.gerenciador = null;
   }
 
   getContas() {
@@ -39,7 +41,8 @@ class SimulacaoVisualService {
     this.lockLogger.onEvent('simulacao-visual:iniciada', {
       contas: this.getContas(),
       totalContas: numContas,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      source: 'visual'
     });
 
     const transacoes = [];
@@ -54,8 +57,17 @@ class SimulacaoVisualService {
       }
     }
 
+    this.gerenciador = new GerenciadorTransacoes(this.lockLogger);
+    this.gerenciador.NUM_WORKERS = 10;
+    this.gerenciador.workerDelayMs = 80;
+    this.gerenciador.source = 'visual';
+    for (const t of transacoes) {
+      this.gerenciador.adicionarTransacao(t);
+    }
+    this.gerenciador.start();
+
     setImmediate(() =>
-      this._processar(transacoes, gen).catch(err => {
+      this._aguardarConclusao(gen).catch(err => {
         console.error('SimulacaoVisualService error:', err);
         this.running = false;
       })
@@ -69,58 +81,32 @@ class SimulacaoVisualService {
     };
   }
 
-  async _processar(transacoes, gen) {
-    for (const t of transacoes) {
-      if (!this.running || gen !== this._generation) break;
-      await this._executar(t);
-      await new Promise(r => setTimeout(r, 400));
+  async _aguardarConclusao(gen) {
+    if (this.gerenciador) {
+      await this.gerenciador.encerrar();
     }
     if (gen === this._generation) {
       this.running = false;
+      this.gerenciador = null;
       this.lockLogger.onEvent('simulacao-visual:finalizada', {
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        source: 'visual'
       });
     }
-  }
-
-  async _executar(t) {
-    const c1 = t.getOrigem();
-    const c2 = t.getDestino();
-    if (!c1.ativa || !c2.ativa) return;
-
-    const primeiro = c1.getId() < c2.getId() ? c1 : c2;
-    const segundo = c1.getId() < c2.getId() ? c2 : c1;
-    const context = { threadId: 'visual', source: 'visual', origemId: c1.getId(), destinoId: c2.getId() };
-
-    const lock1 = await primeiro.tryLock(1000, context);
-    if (!lock1) return;
-    const lock2 = await segundo.tryLock(1000, context);
-    if (!lock2) { lock1.unlock(); return; }
-
-    if (t.getOrigem().sacar(t.getValorCentavos())) {
-      t.getDestino().depositar(t.getValorCentavos());
-      this.lockLogger.onEvent('transacao:success', {
-        threadId: 'visual',
-        source: 'visual',
-        origemId: c1.getId(),
-        destinoId: c2.getId(),
-        valorCentavos: t.getValorCentavos(),
-        timestamp: Date.now()
-      });
-    }
-
-    lock2.unlock();
-    lock1.unlock();
   }
 
   parar() {
     this.running = false;
+    if (this.gerenciador) {
+      this.gerenciador.running = false;
+    }
     for (const { conta } of this.contas.values()) {
       this.lockLogger.disconnectConta(conta);
       conta.remover();
     }
     this.contas.clear();
-    this.lockLogger.onEvent('simulacao-visual:parada', { timestamp: Date.now() });
+    this.gerenciador = null;
+    this.lockLogger.onEvent('simulacao-visual:parada', { timestamp: Date.now(), source: 'visual' });
     return { status: 'parada' };
   }
 }
