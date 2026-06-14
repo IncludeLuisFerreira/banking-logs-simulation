@@ -8,7 +8,8 @@ class Mutex extends EventEmitter {
   }
 
   async acquire(context = {}) {
-    this.emit('lock:request', { ...context, timestamp: Date.now() });
+    const requestTime = Date.now();
+    this.emit('lock:request', { ...context, timestamp: requestTime });
     return new Promise((resolve) => {
       const release = () => {
         this.emit('lock:released', { ...context, timestamp: Date.now() });
@@ -27,7 +28,7 @@ class Mutex extends EventEmitter {
       } else {
         this.emit('lock:blocked', { ...context, timestamp: Date.now() });
         this._waiters.push((r) => {
-          const waitTimeMs = Date.now() - (context.timestamp || Date.now());
+          const waitTimeMs = Date.now() - requestTime;
           this.emit('lock:acquired', { ...context, waitTimeMs, timestamp: Date.now() });
           resolve(r);
         });
@@ -36,8 +37,8 @@ class Mutex extends EventEmitter {
   }
 
   async tryAcquire(timeoutMs, context = {}) {
-    context.timestamp = Date.now();
-    this.emit('lock:request', { ...context });
+    const requestTime = Date.now();
+    this.emit('lock:request', { ...context, timestamp: requestTime });
 
     if (!this._locked) {
       this._locked = true;
@@ -55,7 +56,7 @@ class Mutex extends EventEmitter {
     }
 
     return new Promise((resolve) => {
-      this.emit('lock:blocked', { ...context });
+      this.emit('lock:blocked', { ...context, timestamp: Date.now() });
 
       const timer = setTimeout(() => {
         const index = this._waiters.indexOf(onResolve);
@@ -66,7 +67,7 @@ class Mutex extends EventEmitter {
 
       const onResolve = (release) => {
         clearTimeout(timer);
-        const waitTimeMs = Date.now() - context.timestamp;
+        const waitTimeMs = Date.now() - requestTime;
         this.emit('lock:acquired', { ...context, waitTimeMs, timestamp: Date.now() });
         const wrappedRelease = () => {
           this.emit('lock:released', { ...context, timestamp: Date.now() });
