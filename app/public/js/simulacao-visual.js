@@ -189,8 +189,8 @@ function processarEvento(type, data) {
 
   if (type === 'lock:request') {
     const { contaId, origemId, destinoId } = data;
-    stats.locksAtivos++;
     if (contaId) setAccountState(contaId, 'requesting');
+    atualizarLocksAtivos();
 
     if (origemId && destinoId) {
       const key = `${origemId}-${destinoId}`;
@@ -204,6 +204,7 @@ function processarEvento(type, data) {
   else if (type === 'lock:acquired') {
     const { contaId } = data;
     if (contaId) setAccountState(contaId, 'locked');
+    atualizarLocksAtivos();
   }
 
   else if (type === 'lock:blocked') {
@@ -219,12 +220,13 @@ function processarEvento(type, data) {
       transacoesEmAndamento.delete(key);
       removeArrow(key);
     }
+    atualizarLocksAtivos();
   }
 
   else if (type === 'lock:released') {
     const { contaId } = data;
-    stats.locksAtivos = Math.max(0, stats.locksAtivos - 1);
     if (contaId) setAccountState(contaId, 'idle');
+    atualizarLocksAtivos();
   }
 
   else if (type === 'transacao:success') {
@@ -238,26 +240,19 @@ function processarEvento(type, data) {
 
     const key = `${origemId}-${destinoId}`;
     transacoesEmAndamento.delete(key);
-
     transacoesConcluidas.push({ origemId, destinoId, valorCentavos });
 
     setArrowState(key, 'success');
+    if (origemId) setAccountState(origemId, 'success');
+    if (destinoId) setAccountState(destinoId, 'success');
+
     setTimeout(() => {
       removeArrow(key);
-      renderizar();
-    }, 2000);
-
-    if (origemId) setAccountState(origemId, 'idle');
-    if (destinoId) setAccountState(destinoId, 'idle');
-    const origHub = accountStates.get(origemId);
-    const destHub = accountStates.get(destinoId);
-    if (origHub) origHub.hubLineState = 'success';
-    if (destHub) destHub.hubLineState = 'success';
-    setTimeout(() => {
       if (origemId) setAccountState(origemId, 'idle');
       if (destinoId) setAccountState(destinoId, 'idle');
+      atualizarLocksAtivos();
       renderizar();
-    }, 2000);
+    }, 1500);
   }
 
   else if (type === 'simulacao-visual:iniciada') {
@@ -303,6 +298,14 @@ function setAccountState(contaId, state) {
   if (!entry) return;
   entry.hubLineState = state;
   entry.borderState = state;
+}
+
+function atualizarLocksAtivos() {
+  let count = 0;
+  for (const [, state] of accountStates) {
+    if (state.hubLineState !== 'idle' && state.hubLineState !== 'success') count++;
+  }
+  stats.locksAtivos = count;
 }
 
 function setArrowState(key, state) {
@@ -400,7 +403,9 @@ function renderizarHubLines() {
   svgLines.querySelectorAll('.hub-line').forEach(el => el.remove());
 
   const rect = visualArena.getBoundingClientRect();
-  const centerX = (rect.width - 220) / 2 + 220;
+  const svgLeft = 230;
+  const arenaW = rect.width - svgLeft;
+  const centerX = arenaW / 2;
   const centerY = rect.height / 2;
 
   for (const conta of contasData) {
