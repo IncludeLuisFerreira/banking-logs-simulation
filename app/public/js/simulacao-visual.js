@@ -169,11 +169,8 @@ function configurarVelocidade(ms) {
 
 function processarTick() {
   if (eventBuffer.length === 0) return;
-  const batchSize = Math.min(eventBuffer.length, Math.max(1, Math.floor(eventBuffer.length / 20)));
-  for (let i = 0; i < batchSize; i++) {
-    const event = eventBuffer.shift();
-    processarEvento(event.type, event.data);
-  }
+  const event = eventBuffer.shift();
+  processarEvento(event.type, event.data);
   renderizar();
 }
 
@@ -186,6 +183,7 @@ let transacoesEmAndamento = new Map();
 let transacoesConcluidas = [];
 let resultadosSimulacao = null;
 let inicioSimulacaoTimestamp = null;
+let graceTimer = null;
 
 function processarEvento(type, data) {
   if (data.source && data.source !== 'visual') return;
@@ -286,11 +284,7 @@ function processarEvento(type, data) {
     pararTimer();
     const isFinalizada = type === 'simulacao-visual:finalizada';
 
-    while (eventBuffer.length > 0) {
-      const ev = eventBuffer.shift();
-      processarEvento(ev.type, ev.data);
-    }
-    renderizar();
+    transacoesEmAndamento.clear();
 
     visualStatus.textContent = isFinalizada ? 'Concluída' : 'Parado';
     visualStatus.className = 'status-badge status-idle';
@@ -300,26 +294,24 @@ function processarEvento(type, data) {
     if (isFinalizada) {
       visualStatus.className = 'status-badge status-concluida';
       const duracao = Math.floor((Date.now() - inicioSimulacaoTimestamp) / 1000);
-      const total = transacoesConcluidas.length + transacoesEmAndamento.size;
-      const sucesso = transacoesConcluidas.length;
-      const contencao = total > 0 ? Math.round(((total - sucesso) / total) * 100) : 0;
-      resultadosSimulacao = { total, sucesso, contencao, duracao, timestamp: Date.now() };
 
-      let elapsed = 0;
-      const graceTimer = setInterval(() => {
-        elapsed += 200;
-        while (eventBuffer.length > 0) {
+      graceTimer = setInterval(() => {
+        if (eventBuffer.length > 0) {
           const ev = eventBuffer.shift();
           processarEvento(ev.type, ev.data);
-        }
-        renderizar();
-        if (elapsed >= 2000) {
+          renderizar();
+        } else {
           clearInterval(graceTimer);
+          graceTimer = null;
+          const total = transacoesConcluidas.length;
+          const sucesso = transacoesConcluidas.length;
+          const contencao = total > 0 ? Math.round(((stats.contecoes) / (total + stats.contecoes)) * 100) : 0;
+          resultadosSimulacao = { total, sucesso, contencao, duracao, timestamp: Date.now() };
           if (typeof mostrarResultados === 'function') {
             mostrarResultados(resultadosSimulacao);
           }
         }
-      }, 200);
+      }, 100);
     }
   }
 }
@@ -707,6 +699,7 @@ async function pararSimulacao() {
 }
 
 function limpar() {
+  if (graceTimer) { clearInterval(graceTimer); graceTimer = null; }
   desconectarSSE();
   pararTimer();
   eventBuffer = [];
