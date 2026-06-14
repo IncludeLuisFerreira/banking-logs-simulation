@@ -169,8 +169,12 @@ function configurarVelocidade(ms) {
 
 function processarTick() {
   if (eventBuffer.length === 0) return;
-  const event = eventBuffer.shift();
-  processarEvento(event.type, event.data);
+  const MAX_POR_TICK = 5;
+  const quantidade = Math.min(MAX_POR_TICK, eventBuffer.length);
+  for (let i = 0; i < quantidade; i++) {
+    const event = eventBuffer.shift();
+    processarEvento(event.type, event.data);
+  }
   renderizar();
 }
 
@@ -185,9 +189,11 @@ let resultadosSimulacao = null;
 let inicioSimulacaoTimestamp = null;
 let graceTimer = null;
 let simulacaoAtiva = false;
+let simAtualId = null;
 
 function processarEvento(type, data) {
   if (data.source && data.source !== 'visual') return;
+  if (data.simId !== undefined && data.simId !== simAtualId) return;
 
   if (type === 'transacao:lendo_origem') {
     const { origemId, destinoId } = data;
@@ -264,6 +270,7 @@ function processarEvento(type, data) {
 
   else if (type === 'simulacao-visual:iniciada') {
     eventBuffer = [];
+    if (data.simId !== undefined) simAtualId = data.simId;
     if (contasData.length === 0) {
       contasData = data.contas || [];
       renderizarContas(contasData);
@@ -748,9 +755,18 @@ btnParar.addEventListener('click', pararSimulacao);
 btnLimpar.addEventListener('click', limpar);
 inputNumContas.addEventListener('keydown', (e) => { if (e.key === 'Enter') iniciarSimulacao(); });
 
+const overlay = document.getElementById('resultsOverlay');
+overlay.addEventListener('click', (e) => {
+  if (e.target === overlay) {
+    overlay.hidden = true;
+    overlay.style.display = '';
+    limpar();
+  }
+});
 document.getElementById('btnNovaSimulacao').addEventListener('click', () => {
-  document.getElementById('resultsOverlay').hidden = true;
-  document.getElementById('resultsOverlay').style.display = '';
+  overlay.hidden = true;
+  overlay.style.display = '';
+  limpar();
 });
 
 initParticles();

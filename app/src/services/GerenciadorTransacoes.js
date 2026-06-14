@@ -102,6 +102,7 @@ class GerenciadorTransacoes {
 
     const context = { threadId, origemId: t.getOrigem().getId(), destinoId: t.getDestino().getId() };
     if (this.source) context.source = this.source;
+    if (this.simId) context.simId = this.simId;
 
     // Read current version (snapshot)
     const v1 = c1.version;

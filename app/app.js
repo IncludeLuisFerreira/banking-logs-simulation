@@ -158,7 +158,7 @@ app.get('/simulacao/stream', (req, res) => {
 
   res.write('event: connected\ndata: {}\n\n');
 
-  simulacaoService.lockLogger.addClient(res);
+  simulacaoService.lockLogger.addClient(res, false);
 
   req.on('close', () => {
     simulacaoService.lockLogger.removeClient(res);

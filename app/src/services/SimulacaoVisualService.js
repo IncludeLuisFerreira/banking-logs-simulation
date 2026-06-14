@@ -9,7 +9,7 @@ class SimulacaoVisualService {
     this.running = false;
     this._generation = 0;
     this.gerenciador = null;
-    this.NUM_WORKERS = 50;
+    this.NUM_WORKERS = 8;
   }
 
   getContas() {
@@ -87,6 +87,7 @@ class SimulacaoVisualService {
       totalContas: numContas,
       numWorkers,
       mode,
+      simId: gen,
       timestamp: Date.now(),
       source: 'visual'
     });
@@ -103,15 +104,17 @@ class SimulacaoVisualService {
 
     this.gerenciador = new GerenciadorTransacoes(this.lockLogger);
     this.gerenciador.NUM_WORKERS = numWorkers;
-    this.gerenciador.workerDelayMs = 150;
+    this.gerenciador.workerDelayMs = 300;
     this.gerenciador.source = 'visual';
+    this.gerenciador.simId = gen;
     for (const t of transacoes) {
       this.gerenciador.adicionarTransacao(t);
     }
     this.gerenciador.start();
 
+    const gerenciadorAtual = this.gerenciador;
     setImmediate(() =>
-      this._aguardarConclusao(gen).catch(err => {
+      this._aguardarConclusao(gen, gerenciadorAtual).catch(err => {
         console.error('SimulacaoVisualService error:', err);
         this.running = false;
       })
@@ -126,9 +129,9 @@ class SimulacaoVisualService {
     };
   }
 
-  async _aguardarConclusao(gen) {
-    if (this.gerenciador) {
-      await this.gerenciador.encerrar();
+  async _aguardarConclusao(gen, gerenciador) {
+    if (gerenciador) {
+      await gerenciador.encerrar();
     }
     if (gen === this._generation) {
       this.running = false;
