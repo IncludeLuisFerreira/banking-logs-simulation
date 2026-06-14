@@ -69,11 +69,7 @@ class Mutex extends EventEmitter {
         clearTimeout(timer);
         const waitTimeMs = Date.now() - requestTime;
         this.emit('lock:acquired', { ...context, waitTimeMs, timestamp: Date.now() });
-        const wrappedRelease = () => {
-          this.emit('lock:released', { ...context, timestamp: Date.now() });
-          release();
-        };
-        resolve({ acquired: true, release: wrappedRelease });
+        resolve({ acquired: true, release });
       };
 
       this._waiters.push(onResolve);
