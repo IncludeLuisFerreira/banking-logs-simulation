@@ -184,6 +184,7 @@ let transacoesConcluidas = [];
 let resultadosSimulacao = null;
 let inicioSimulacaoTimestamp = null;
 let graceTimer = null;
+let simulacaoAtiva = false;
 
 function processarEvento(type, data) {
   if (data.source && data.source !== 'visual') return;
@@ -262,10 +263,12 @@ function processarEvento(type, data) {
   }
 
   else if (type === 'simulacao-visual:iniciada') {
+    eventBuffer = [];
     if (contasData.length === 0) {
       contasData = data.contas || [];
       renderizarContas(contasData);
     }
+    simulacaoAtiva = true;
     accountStates.clear();
     activeArrows.clear();
     transacoesEmAndamento.clear();
@@ -281,7 +284,9 @@ function processarEvento(type, data) {
   }
 
   else if (type === 'simulacao-visual:finalizada' || type === 'simulacao-visual:parada') {
+    if (!simulacaoAtiva) return;
     pararTimer();
+    simulacaoAtiva = false;
     const isFinalizada = type === 'simulacao-visual:finalizada';
 
     transacoesEmAndamento.clear();
