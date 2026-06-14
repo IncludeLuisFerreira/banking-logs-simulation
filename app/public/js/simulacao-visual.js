@@ -283,28 +283,44 @@ function processarEvento(type, data) {
   }
 
   else if (type === 'simulacao-visual:finalizada' || type === 'simulacao-visual:parada') {
+    pararTimer();
+    const isFinalizada = type === 'simulacao-visual:finalizada';
+
     while (eventBuffer.length > 0) {
       const ev = eventBuffer.shift();
       processarEvento(ev.type, ev.data);
     }
-    visualStatus.textContent = type === 'simulacao-visual:finalizada' ? 'Concluída' : 'Parado';
+    renderizar();
+
+    visualStatus.textContent = isFinalizada ? 'Concluída' : 'Parado';
     visualStatus.className = 'status-badge status-idle';
     btnParar.disabled = true;
     btnIniciar.disabled = false;
-    pararTimer();
 
-    if (type === 'simulacao-visual:finalizada') {
+    if (isFinalizada) {
+      visualStatus.className = 'status-badge status-concluida';
       const duracao = Math.floor((Date.now() - inicioSimulacaoTimestamp) / 1000);
       const total = transacoesConcluidas.length + transacoesEmAndamento.size;
       const sucesso = transacoesConcluidas.length;
       const contencao = total > 0 ? Math.round(((total - sucesso) / total) * 100) : 0;
       resultadosSimulacao = { total, sucesso, contencao, duracao, timestamp: Date.now() };
-      if (typeof mostrarResultados === 'function') {
-        mostrarResultados(resultadosSimulacao);
-      }
-      visualStatus.className = 'status-badge status-concluida';
+
+      let elapsed = 0;
+      const graceTimer = setInterval(() => {
+        elapsed += 200;
+        while (eventBuffer.length > 0) {
+          const ev = eventBuffer.shift();
+          processarEvento(ev.type, ev.data);
+        }
+        renderizar();
+        if (elapsed >= 2000) {
+          clearInterval(graceTimer);
+          if (typeof mostrarResultados === 'function') {
+            mostrarResultados(resultadosSimulacao);
+          }
+        }
+      }, 200);
     }
-    renderizar();
   }
 }
 
