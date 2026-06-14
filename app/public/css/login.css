@@ -2,6 +2,11 @@
    Banking Simulation — Login Styles
    ============================================================ */
 
+/* Regra de segurança para ocultação de elementos */
+[hidden] {
+  display: none !important;
+}
+
 /* Reset básico */
 *, *::before, *::after {
   margin: 0;
@@ -173,6 +178,8 @@ body {
   color: #fff;
   font-size: 0.75rem;
   font-weight: 700;
+  line-height: 1;
+  margin-top: 1px;
 }
 
 .form-link {
@@ -222,8 +229,11 @@ body {
   cursor: not-allowed;
 }
 
-.btn__spinner {
+/* Ajuste do spinner respeitando o hidden */
+.btn__spinner:not([hidden]) {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .spinner {
