@@ -50,6 +50,8 @@ class LockLogger extends EventEmitter {
 
   addClient(res) {
     this.clients.add(res);
+    res.on('error', () => { this.clients.delete(res); });
+    res.on('close', () => { this.clients.delete(res); });
     this.buffer.forEach((entry) => {
       try {
         const payload = `event: ${entry.type}\ndata: ${JSON.stringify(entry.data)}\n\n`;
