@@ -33,9 +33,10 @@ class Conta {
     const ctx = { ...context, contaId: this.id };
     const result = await this.mutex.tryAcquire(timeoutMs, ctx);
     if (result.acquired) {
+      let held = true;
       return {
-        unlock: () => result.release(),
-        isHeld: () => this.mutex.isLocked()
+        unlock: () => { result.release(); held = false; },
+        isHeld: () => held
       };
     }
     return null;
