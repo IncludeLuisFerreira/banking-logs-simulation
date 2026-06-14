@@ -119,7 +119,7 @@ async function autenticar(credenciais) {
 
       // Redireciona para dashboard
       setTimeout(() => {
-        window.location.href = '/dashboard.html';
+        window.location.href = '/html/dashboard.html';
       }, 800);
 
     } else if (resposta.status === 401) {
