@@ -403,9 +403,8 @@ function renderizarHubLines() {
   svgLines.querySelectorAll('.hub-line').forEach(el => el.remove());
 
   const rect = visualArena.getBoundingClientRect();
-  const svgLeft = 230;
-  const arenaW = rect.width - svgLeft;
-  const centerX = arenaW / 2;
+  const arenaWidth = rect.width - 230;
+  const centerX = arenaWidth / 2 + 230;
   const centerY = rect.height / 2;
 
   for (const conta of contasData) {

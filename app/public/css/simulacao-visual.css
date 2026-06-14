@@ -478,10 +478,8 @@ body:has(.visual-page) {
 .visual-svg {
   position: absolute;
   top: 0;
-  left: 230px;
-  right: 0;
-  bottom: 0;
-  width: auto;
+  left: 0;
+  width: 100%;
   height: 100%;
   pointer-events: none;
   z-index: 1;
@@ -509,6 +507,7 @@ body:has(.visual-page) {
   gap: 4px;
   backdrop-filter: blur(6px);
   transition: border-color 0.3s, box-shadow 0.3s;
+  transform: translate(-50%, -50%);
 }
 
 .center-ring {
