@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banking Simulation — Dashboard</title>
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+
+  <main class="dashboard-page">
+    <header class="dashboard-header">
+      <h1 class="dashboard-title">Banking Simulation</h1>
+      <div class="dashboard-user">
+        <span id="userDisplay" class="dashboard-username"></span>
+        <button id="btnLogout" class="btn btn--primary dashboard-logout">Sair</button>
+      </div>
+    </header>
+
+    <section class="dashboard-content">
+      <div class="dashboard-card">
+        <h2>Bem-vindo, <span id="userWelcome"></span>!</h2>
+        <p class="dashboard-placeholder">A simulação bancária estará disponível em breve.</p>
+      </div>
+    </section>
+
+    <div class="feedback" id="feedback" role="alert" aria-live="polite" hidden></div>
+  </main>
+
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
