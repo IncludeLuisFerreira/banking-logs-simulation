@@ -87,7 +87,8 @@
         <div class="center-label">Banco Central</div>
         <div class="center-stats">
           <span>Transferências: <strong id="totalTransacoes">0</strong></span>
-          <span>Locks ativos: <strong id="locksAtivos">0</strong></span>
+          <span>Transações ativas: <strong id="locksAtivos">0</strong></span>
+          <span>Contenções: <strong id="totalContencoes" style="color:#ffab40">0</strong></span>
         </div>
       </div>
 
@@ -95,9 +96,9 @@
     </div>
 
     <div class="visual-legend">
-      <span class="legend-item"><span class="legend-dot requesting"></span> Solicitando</span>
-      <span class="legend-item"><span class="legend-dot locked"></span> Lock</span>
-      <span class="legend-item"><span class="legend-dot blocked"></span> Bloqueado</span>
+      <span class="legend-item"><span class="legend-dot reading"></span> Lendo</span>
+      <span class="legend-item"><span class="legend-dot locked"></span> Debitando</span>
+      <span class="legend-item"><span class="legend-dot conflito"></span> Conflito</span>
       <span class="legend-item"><span class="legend-dot idle"></span> Livre</span>
     </div>
 
