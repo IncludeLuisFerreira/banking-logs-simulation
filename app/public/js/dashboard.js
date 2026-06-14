@@ -3,7 +3,7 @@ const userWelcome = document.getElementById('userWelcome');
 const btnLogout = document.getElementById('btnLogout');
 const feedback = document.getElementById('feedback');
 
-const API_URL = 'http://localhost:3000';
+const API_URL = API_BASE_URL;
 
 function exibirFeedback(mensagem, tipo) {
   feedback.textContent = mensagem;

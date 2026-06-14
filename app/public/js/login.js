@@ -13,7 +13,7 @@ const spinnerBotao = botaoSubmit.querySelector('.btn__spinner');
 const feedback = document.getElementById('feedback');
 
 // URL da API backend
-const API_URL = 'http://localhost:3000/auth/login';
+const API_URL = `${API_BASE_URL}/auth/login`;
 
 // ============================================================
 // Funções auxiliares

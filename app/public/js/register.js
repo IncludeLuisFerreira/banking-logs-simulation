@@ -17,7 +17,7 @@ const spinnerBotao = botaoSubmit.querySelector('.btn__spinner');
 const feedback = document.getElementById('feedback');
 
 // URL da API backend
-const API_URL = 'http://localhost:3000/auth/register';
+const API_URL = `${API_BASE_URL}/auth/register`;
 
 // ============================================================
 // Funções auxiliares
@@ -64,7 +64,7 @@ function toggleLoading(carregando) {
 function validarFormulario() {
   const usuario = campoUsuario.value.trim();
   const senha = campoSenha.value;
-  const confirm = campoConfirm.value;
+  const confirmacao = campoConfirm.value;
 
   // Validação: usuário não vazio
   if (!usuario) {
@@ -88,7 +88,7 @@ function validarFormulario() {
   }
 
   // Validação: confirmação de senha
-  if (senha !== confirm) {
+  if (senha !== confirmacao) {
     exibirFeedback('As senhas não conferem.', 'error');
     campoConfirm.focus();
     return null;
