@@ -571,10 +571,7 @@ body:has(.visual-page) {
 /* --- Account Cards --- */
 .visual-accounts {
   position: absolute;
-  top: 0;
-  left: 230px;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   z-index: 3;
   pointer-events: none;
 }
@@ -793,7 +790,7 @@ body:has(.visual-page) {
   display: flex;
   justify-content: center;
   gap: 24px;
-  padding: 10px 28px 10px 254px;
+  padding: 10px 28px;
   background: rgba(0, 212, 255, 0.02);
   border-top: 1px solid rgba(0, 212, 255, 0.06);
   font-size: 12px;

@@ -403,8 +403,7 @@ function renderizarHubLines() {
   svgLines.querySelectorAll('.hub-line').forEach(el => el.remove());
 
   const rect = visualArena.getBoundingClientRect();
-  const arenaWidth = rect.width - 230;
-  const centerX = arenaWidth / 2 + 230;
+  const centerX = rect.width / 2;
   const centerY = rect.height / 2;
 
   for (const conta of contasData) {
@@ -559,10 +558,9 @@ function animarNumeros(elementId, start, end, duration) {
 // ===== Account Positioning =====
 function renderizarContas(contas) {
   const rect = visualArena.getBoundingClientRect();
-  const arenaWidth = rect.width - 230;
-  const centerX = arenaWidth / 2 + 230;
+  const centerX = rect.width / 2;
   const centerY = rect.height / 2;
-  const radius = Math.min(arenaWidth / 2, centerY) - 90;
+  const radius = Math.min(centerX, centerY) - 90;
 
   visualAccounts.innerHTML = '';
 
