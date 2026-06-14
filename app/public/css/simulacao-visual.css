@@ -81,6 +81,93 @@
   width: 100%;
 }
 
+/* Transaction panel — glued to left side of arena, full height */
+.transacao-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 220px;
+  background: rgba(10, 14, 39, 0.92);
+  border-right: 1px solid rgba(255,255,255,0.08);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(6px);
+}
+
+.transacao-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 12px;
+  font-weight: bold;
+  color: #aaa;
+}
+
+.transacao-panel-header .btn--small {
+  padding: 2px 8px;
+  font-size: 10px;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.transacao-panel-header .btn--small:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.transacao-logs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.transacao-placeholder {
+  color: #666;
+  font-style: italic;
+  padding: 12px;
+  text-align: center;
+  font-size: 11px;
+}
+
+.transacao-entry {
+  padding: 4px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: #4caf50;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: fadeInLog 0.3s ease;
+}
+
+.transacao-entry .trans-arrow {
+  color: #ccc;
+  font-weight: bold;
+}
+
+.transacao-entry .trans-seta {
+  color: #666;
+  margin: 0 3px;
+}
+
+.transacao-entry .trans-valor {
+  color: #8ab4f8;
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+@keyframes fadeInLog {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* SVG */
 .visual-svg {
   position: absolute;
   top: 0;
@@ -113,11 +200,6 @@
   backdrop-filter: blur(4px);
 }
 
-.visual-center--worker {
-  border-color: rgba(40, 167, 69, 0.3);
-  background: rgba(40, 167, 69, 0.06);
-}
-
 .center-icon {
   font-size: 32px;
 }
@@ -139,19 +221,9 @@
 .visual-accounts {
   position: absolute;
   top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 3;
-  pointer-events: none;
-}
-
-.visual-workers {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  left: 220px;
+  right: 0;
+  bottom: 0;
   z-index: 3;
   pointer-events: none;
 }
@@ -236,81 +308,6 @@
   color: #fff;
 }
 
-/* Worker cards */
-.worker-card {
-  position: absolute;
-  pointer-events: auto;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  text-align: center;
-  background: rgba(30, 40, 70, 0.9);
-  border: 2px solid #555;
-  cursor: default;
-  transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.worker-card .worker-id {
-  font-size: 10px;
-  font-weight: bold;
-  line-height: 1.2;
-  color: #ccc;
-}
-
-.worker-card .worker-status-icon {
-  font-size: 16px;
-  line-height: 1;
-}
-
-.worker-card.worker-idle {
-  border-color: #555;
-  background: rgba(30, 40, 70, 0.6);
-}
-
-.worker-card.worker-requesting {
-  border-color: #f0a030;
-  box-shadow: 0 0 10px rgba(240,160,48,0.4);
-  background: rgba(240, 160, 48, 0.15);
-}
-
-.worker-card.worker-locked {
-  border-color: #28a745;
-  box-shadow: 0 0 10px rgba(40,167,69,0.4);
-  background: rgba(40, 167, 69, 0.15);
-}
-
-.worker-card.worker-blocked,
-.worker-card.worker-timeout {
-  border-color: #dc3545;
-  box-shadow: 0 0 10px rgba(220,53,69,0.4);
-  background: rgba(220, 53, 69, 0.15);
-}
-
-/* Worker lines */
-.worker-line {
-  stroke-width: 2;
-  fill: none;
-  stroke-dasharray: 4 3;
-  stroke-linecap: round;
-}
-.worker-line.requesting {
-  stroke: #f0a030;
-  animation: dash-move 0.6s linear infinite;
-}
-.worker-line.locked {
-  stroke: #28a745;
-  stroke-dasharray: none;
-}
-.worker-line.blocked,
-.worker-line.timeout {
-  stroke: #dc3545;
-}
-
 .visual-legend {
   display: flex;
   justify-content: center;
@@ -318,6 +315,7 @@
   padding: 12px 24px;
   background: rgba(255,255,255,0.03);
   font-size: 12px;
+  padding-left: 244px;
 }
 
 .legend-item {
@@ -368,7 +366,6 @@
   cursor: not-allowed;
 }
 
-/* Back button */
 .btn--back {
   background: transparent;
   color: #8ab4f8;
@@ -383,14 +380,12 @@
   background: rgba(138, 180, 248, 0.1);
 }
 
-/* Speed controls row */
 .visual-controls--speed {
   border-top: 1px solid rgba(255,255,255,0.08);
   padding-top: 8px;
   margin-top: -8px;
 }
 
-/* Slider */
 .speed-slider {
   width: 160px;
   accent-color: #8ab4f8;
@@ -452,96 +447,7 @@
   transition: stroke 2s ease-out;
 }
 
-/* Transaction log panel */
-.transacao-panel {
-  position: fixed;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 240px;
-  max-height: 60vh;
-  background: rgba(10, 14, 39, 0.95);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-right: none;
-  border-radius: 8px 0 0 8px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  backdrop-filter: blur(6px);
-}
-
-.transacao-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  font-size: 12px;
-  font-weight: bold;
-  color: #aaa;
-}
-
-.transacao-panel-header .btn--small {
-  padding: 2px 8px;
-  font-size: 10px;
-  background: rgba(255,255,255,0.1);
-  border: none;
-  color: #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.transacao-panel-header .btn--small:hover {
-  background: rgba(255,255,255,0.2);
-}
-
-.transacao-logs {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 0;
-  font-size: 11px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  max-height: calc(60vh - 36px);
-}
-
-.transacao-placeholder {
-  color: #666;
-  font-style: italic;
-  padding: 12px;
-  text-align: center;
-  font-size: 11px;
-}
-
-.transacao-entry {
-  padding: 4px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  color: #4caf50;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  animation: fadeInLog 0.3s ease;
-}
-
-.transacao-entry .trans-thread {
-  color: #888;
-  font-size: 10px;
-}
-
-.transacao-entry .trans-arrow {
-  color: #666;
-  margin: 0 2px;
-}
-
-.transacao-entry .trans-valor {
-  color: #8ab4f8;
-  font-weight: bold;
-}
-
-@keyframes fadeInLog {
-  from { opacity: 0; transform: translateX(8px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-/* Status badges (from dashboard.css, needed here too) */
+/* Status badges */
 .status-badge {
   display: inline-block;
   padding: 0.125rem 0.5rem;

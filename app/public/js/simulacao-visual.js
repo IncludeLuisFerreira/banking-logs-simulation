@@ -1,8 +1,8 @@
 /* ===============================================================
    Module 1: SSE Client — connects, pushes events to buffer
    Module 2: Event Queue + Tick Timer — buffers events, ticks
-   Module 3: State Manager — account states, arrows, stats, workers
-   Module 4: Renderer — hub lines, cards, arrows, workers
+   Module 3: State Manager — account states, arrows, stats
+   Module 4: Renderer — hub lines, cards, arrows
    =============================================================== */
 
 // --- DOM refs ---
@@ -16,12 +16,9 @@ const inputNumContas = document.getElementById('inputNumContas');
 const visualStatus = document.getElementById('visualStatus');
 const totalTransacoes = document.getElementById('totalTransacoes');
 const locksAtivos = document.getElementById('locksAtivos');
-const workersAtivos = document.getElementById('workersAtivos');
-const workersTotal = document.getElementById('workersTotal');
 const visualArena = document.getElementById('visualArena');
 const svgLines = document.getElementById('svgLines');
 const visualAccounts = document.getElementById('visualAccounts');
-const visualWorkers = document.getElementById('visualWorkers');
 const speedSlider = document.getElementById('speedSlider');
 const speedLabel = document.getElementById('speedLabel');
 const modeRadios = document.querySelectorAll('input[name="simMode"]');
@@ -128,46 +125,40 @@ function processarTick() {
 let contasData = [];
 let accountStates = new Map();
 let activeArrows = new Map();
-let workerStates = new Map();
 let stats = { transacoes: 0, locksAtivos: 0 };
 
 function processarEvento(type, data) {
   if (data.source && data.source !== 'visual') return;
 
   if (type === 'lock:request') {
-    const { contaId, threadId } = data;
+    const { contaId } = data;
     stats.locksAtivos++;
     if (contaId) setAccountState(contaId, 'requesting');
-    if (threadId) setWorkerState(threadId, 'requesting', contaId);
   }
 
   else if (type === 'lock:acquired') {
-    const { contaId, threadId } = data;
+    const { contaId } = data;
     if (contaId) setAccountState(contaId, 'locked');
-    if (threadId) setWorkerState(threadId, 'locked', contaId);
   }
 
   else if (type === 'lock:blocked') {
-    const { contaId, threadId } = data;
+    const { contaId } = data;
     if (contaId) setAccountState(contaId, 'blocked');
-    if (threadId) setWorkerState(threadId, 'blocked', contaId);
   }
 
   else if (type === 'lock:timeout') {
-    const { contaId, threadId } = data;
+    const { contaId } = data;
     if (contaId) setAccountState(contaId, 'timeout');
-    if (threadId) setWorkerState(threadId, 'timeout', contaId);
   }
 
   else if (type === 'lock:released') {
-    const { contaId, threadId } = data;
+    const { contaId } = data;
     stats.locksAtivos = Math.max(0, stats.locksAtivos - 1);
     if (contaId) setAccountState(contaId, 'idle');
-    if (threadId) setWorkerState(threadId, 'idle', null);
   }
 
   else if (type === 'transacao:success') {
-    const { origemId, destinoId, valorCentavos, threadId } = data;
+    const { origemId, destinoId, valorCentavos } = data;
     stats.transacoes++;
 
     const contaOrigem = contasData.find(c => c.id === origemId);
@@ -175,7 +166,7 @@ function processarEvento(type, data) {
     if (contaOrigem) contaOrigem.saldoCentavos -= valorCentavos;
     if (contaDestino) contaDestino.saldoCentavos += valorCentavos;
 
-    adicionarLogTransacao(threadId, origemId, destinoId, valorCentavos);
+    adicionarLogTransacao(origemId, destinoId, valorCentavos);
 
     const key = `${origemId}-${destinoId}`;
     setArrowState(key, 'success');
@@ -195,24 +186,16 @@ function processarEvento(type, data) {
       if (destinoId) setAccountState(destinoId, 'idle');
       renderizar();
     }, 2000);
-
-    if (threadId) setWorkerState(threadId, 'idle', null);
   }
 
   else if (type === 'simulacao-visual:iniciada') {
     contasData = data.contas || [];
     accountStates.clear();
     activeArrows.clear();
-    workerStates.clear();
     stats = { transacoes: 0, locksAtivos: 0 };
     for (const c of contasData) {
       accountStates.set(c.id, { hubLineState: 'idle', borderState: 'idle' });
     }
-    const numWorkers = data.numWorkers || 10;
-    for (let i = 0; i < numWorkers; i++) {
-      workerStates.set(`worker-${i}`, { state: 'idle', contaId: null });
-    }
-    workersTotal.textContent = numWorkers;
   }
 
   else if (type === 'simulacao-visual:finalizada' || type === 'simulacao-visual:parada') {
@@ -221,10 +204,6 @@ function processarEvento(type, data) {
     btnParar.disabled = true;
     btnIniciar.disabled = false;
     pararTimer();
-    for (const [id, ws] of workerStates) {
-      ws.state = 'idle';
-      ws.contaId = null;
-    }
     renderizar();
   }
 }
@@ -234,13 +213,6 @@ function setAccountState(contaId, state) {
   if (!entry) return;
   entry.hubLineState = state;
   entry.borderState = state;
-}
-
-function setWorkerState(threadId, state, contaId) {
-  const ws = workerStates.get(threadId);
-  if (!ws) return;
-  ws.state = state;
-  ws.contaId = contaId;
 }
 
 function setArrowState(key, state) {
@@ -261,46 +233,27 @@ function removeArrow(key) {
 }
 
 // ===== MODULE 4: Renderer =====
-let _cachedRect = null;
-let _cachedAccountCenter = null;
-let _cachedWorkerCenter = null;
-
 function renderizar() {
-  const rect = visualArena.getBoundingClientRect();
-  _cachedRect = rect;
-  _cachedAccountCenter = { x: rect.width * 0.32, y: rect.height / 2 };
-  _cachedWorkerCenter = { x: rect.width * 0.72, y: rect.height / 2 };
-
-  positionarHubs();
   renderizarHubLines();
   renderizarCards();
-  renderizarWorkerCards();
-  renderizarWorkerLines();
   renderizarArrows();
   atualizarStats();
 }
 
-function positionarHubs() {
-  const bankHub = document.getElementById('visualCenter');
-  const workerHub = document.getElementById('visualCenterWorker');
-  if (!bankHub || !workerHub || !_cachedRect) return;
-  bankHub.style.left = (_cachedAccountCenter.x) + 'px';
-  bankHub.style.top = (_cachedAccountCenter.y) + 'px';
-  workerHub.style.left = (_cachedWorkerCenter.x) + 'px';
-  workerHub.style.top = (_cachedWorkerCenter.y) + 'px';
-}
-
 function renderizarHubLines() {
   svgLines.querySelectorAll('.hub-line').forEach(el => el.remove());
-  if (!_cachedAccountCenter) return;
+
+  const rect = visualArena.getBoundingClientRect();
+  const centerX = (rect.width - 220) / 2 + 220;
+  const centerY = rect.height / 2;
 
   for (const conta of contasData) {
     const state = accountStates.get(conta.id);
     const lineState = state ? state.hubLineState : 'idle';
 
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', _cachedAccountCenter.x);
-    line.setAttribute('y1', _cachedAccountCenter.y);
+    line.setAttribute('x1', centerX);
+    line.setAttribute('y1', centerY);
     line.setAttribute('x2', conta._x);
     line.setAttribute('y2', conta._y);
     line.classList.add('hub-line', lineState);
@@ -320,66 +273,6 @@ function renderizarCards() {
     statusEl.textContent = labels[borderState] || borderState;
     const saldoEl = card.querySelector('.conta-saldo');
     saldoEl.textContent = `R$ ${(conta.saldoCentavos / 100).toFixed(2)}`;
-  }
-}
-
-function renderizarWorkerCards() {
-  visualWorkers.innerHTML = '';
-  if (!_cachedWorkerCenter) return;
-
-  const count = workerStates.size;
-  if (count === 0) return;
-  const radius = 70;
-
-  let idx = 0;
-  for (const [threadId, ws] of workerStates) {
-    const angle = (idx / count) * 2 * Math.PI - Math.PI / 2;
-    const x = _cachedWorkerCenter.x + radius * Math.cos(angle);
-    const y = _cachedWorkerCenter.y + radius * Math.sin(angle);
-
-    const card = document.createElement('div');
-    card.className = `worker-card worker-${ws.state}`;
-    card.id = `worker-${threadId}`;
-    card.style.left = x + 'px';
-    card.style.top = y + 'px';
-    card.title = `${threadId}: ${ws.state}`;
-
-    const icons = { idle: '⏸️', requesting: '🔍', locked: '🔒', blocked: '⛔', timeout: '⏰' };
-    card.innerHTML = `
-      <div class="worker-status-icon">${icons[ws.state] || '⏸️'}</div>
-      <div class="worker-id">${threadId.replace('worker-', 'W')}</div>
-    `;
-    visualWorkers.appendChild(card);
-    idx++;
-  }
-}
-
-function renderizarWorkerLines() {
-  svgLines.querySelectorAll('.worker-line').forEach(el => el.remove());
-  if (!_cachedWorkerCenter) return;
-
-  for (const [threadId, ws] of workerStates) {
-    if (ws.state === 'idle' || !ws.contaId) continue;
-
-    const conta = contasData.find(c => c.id === ws.contaId);
-    if (!conta || conta._x == null) continue;
-
-    const workerNode = document.getElementById(`worker-${threadId}`);
-    if (!workerNode) continue;
-
-    const wx = parseFloat(workerNode.style.left);
-    const wy = parseFloat(workerNode.style.top);
-    if (isNaN(wx) || isNaN(wy)) continue;
-
-    const lineState = ws.state === 'locked' ? 'locked' : ws.state;
-
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', wx);
-    line.setAttribute('y1', wy);
-    line.setAttribute('x2', conta._x);
-    line.setAttribute('y2', conta._y);
-    line.classList.add('worker-line', lineState);
-    svgLines.appendChild(line);
   }
 }
 
@@ -431,20 +324,15 @@ function renderizarArrows() {
 function atualizarStats() {
   locksAtivos.textContent = stats.locksAtivos;
   totalTransacoes.textContent = stats.transacoes;
-
-  let ativos = 0;
-  for (const ws of workerStates.values()) {
-    if (ws.state !== 'idle') ativos++;
-  }
-  workersAtivos.textContent = ativos;
 }
 
 // ===== Account Positioning =====
 function renderizarContas(contas) {
   const rect = visualArena.getBoundingClientRect();
-  const centerX = rect.width * 0.32;
+  const arenaWidth = rect.width - 220;
+  const centerX = arenaWidth / 2 + 220;
   const centerY = rect.height / 2;
-  const radius = Math.min(centerX, centerY) - 90;
+  const radius = Math.min(arenaWidth / 2, centerY) - 90;
 
   visualAccounts.innerHTML = '';
 
@@ -467,6 +355,12 @@ function renderizarContas(contas) {
     `;
     visualAccounts.appendChild(card);
   });
+
+  const bankHub = document.getElementById('visualCenter');
+  if (bankHub) {
+    bankHub.style.left = centerX + 'px';
+    bankHub.style.top = centerY + 'px';
+  }
 }
 
 // ===== Simulation Lifecycle =====
@@ -549,19 +443,12 @@ function limpar() {
   contasData = [];
   accountStates.clear();
   activeArrows.clear();
-  workerStates.clear();
   stats = { transacoes: 0, locksAtivos: 0 };
   visualAccounts.innerHTML = '';
-  visualWorkers.innerHTML = '';
   svgLines.innerHTML = '';
   locksAtivos.textContent = '0';
   totalTransacoes.textContent = '0';
-  workersAtivos.textContent = '0';
-  workersTotal.textContent = '0';
   btnParar.disabled = true;
-  _cachedRect = null;
-  _cachedAccountCenter = null;
-  _cachedWorkerCenter = null;
 }
 
 // ===== Speed Slider =====
@@ -576,17 +463,17 @@ const transacaoLogs = document.getElementById('transacaoLogs');
 const btnLimparLogTransacoes = document.getElementById('btnLimparLogTransacoes');
 const MAX_LOG_ENTRIES = 100;
 
-function adicionarLogTransacao(threadId, origemId, destinoId, valorCentavos) {
+function adicionarLogTransacao(origemId, destinoId, valorCentavos) {
   const placeholder = transacaoLogs.querySelector('.transacao-placeholder');
   if (placeholder) placeholder.remove();
 
   const entry = document.createElement('div');
   entry.className = 'transacao-entry';
   const valor = (valorCentavos / 100).toFixed(2);
-  const workerLabel = threadId ? threadId.replace('worker-', 'W') : '?';
   entry.innerHTML = `
-    <span class="trans-thread">${workerLabel}</span>
-    <span class="trans-arrow">${origemId} → ${destinoId}</span>
+    <span class="trans-arrow">${origemId}</span>
+    <span class="trans-seta">→</span>
+    <span class="trans-arrow">${destinoId}</span>
     <span class="trans-valor">R$ ${valor}</span>
   `;
   transacaoLogs.appendChild(entry);
