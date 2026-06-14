@@ -126,14 +126,26 @@ let contasData = [];
 let accountStates = new Map();
 let activeArrows = new Map();
 let stats = { transacoes: 0, locksAtivos: 0 };
+let transacoesEmAndamento = new Map();
+let transacoesConcluidas = [];
+let resultadosSimulacao = null;
+let inicioSimulacaoTimestamp = null;
 
 function processarEvento(type, data) {
   if (data.source && data.source !== 'visual') return;
 
   if (type === 'lock:request') {
-    const { contaId } = data;
+    const { contaId, origemId, destinoId } = data;
     stats.locksAtivos++;
     if (contaId) setAccountState(contaId, 'requesting');
+
+    if (origemId && destinoId) {
+      const key = `${origemId}-${destinoId}`;
+      if (!transacoesEmAndamento.has(key)) {
+        transacoesEmAndamento.set(key, { origemId, destinoId, inicioTimestamp: Date.now() });
+      }
+      setArrowState(key, 'requesting');
+    }
   }
 
   else if (type === 'lock:acquired') {
@@ -147,8 +159,11 @@ function processarEvento(type, data) {
   }
 
   else if (type === 'lock:timeout') {
-    const { contaId } = data;
+    const { contaId, origemId, destinoId } = data;
     if (contaId) setAccountState(contaId, 'timeout');
+    if (origemId && destinoId) {
+      transacoesEmAndamento.delete(`${origemId}-${destinoId}`);
+    }
   }
 
   else if (type === 'lock:released') {
@@ -166,9 +181,11 @@ function processarEvento(type, data) {
     if (contaOrigem) contaOrigem.saldoCentavos -= valorCentavos;
     if (contaDestino) contaDestino.saldoCentavos += valorCentavos;
 
-    adicionarLogTransacao(origemId, destinoId, valorCentavos);
-
     const key = `${origemId}-${destinoId}`;
+    transacoesEmAndamento.delete(key);
+
+    transacoesConcluidas.push({ origemId, destinoId, valorCentavos });
+
     setArrowState(key, 'success');
     setTimeout(() => {
       removeArrow(key);
@@ -192,10 +209,16 @@ function processarEvento(type, data) {
     contasData = data.contas || [];
     accountStates.clear();
     activeArrows.clear();
+    transacoesEmAndamento.clear();
+    transacoesConcluidas = [];
+    resultadosSimulacao = null;
+    inicioSimulacaoTimestamp = Date.now();
     stats = { transacoes: 0, locksAtivos: 0 };
     for (const c of contasData) {
       accountStates.set(c.id, { hubLineState: 'idle', borderState: 'idle' });
     }
+    visualStatus.textContent = 'Rodando';
+    visualStatus.className = 'status-badge status-running';
   }
 
   else if (type === 'simulacao-visual:finalizada' || type === 'simulacao-visual:parada') {
@@ -204,6 +227,16 @@ function processarEvento(type, data) {
     btnParar.disabled = true;
     btnIniciar.disabled = false;
     pararTimer();
+
+    if (type === 'simulacao-visual:finalizada') {
+      const duracao = Math.floor((Date.now() - inicioSimulacaoTimestamp) / 1000);
+      const total = transacoesConcluidas.length + transacoesEmAndamento.size;
+      const sucesso = transacoesConcluidas.length;
+      const contencao = total > 0 ? Math.round(((total - sucesso) / total) * 100) : 0;
+      resultadosSimulacao = { total, sucesso, contencao, duracao };
+      mostrarResultados(resultadosSimulacao);
+      visualStatus.className = 'status-badge status-concluida';
+    }
     renderizar();
   }
 }
@@ -444,11 +477,16 @@ function limpar() {
   accountStates.clear();
   activeArrows.clear();
   stats = { transacoes: 0, locksAtivos: 0 };
+  transacoesEmAndamento.clear();
+  transacoesConcluidas = [];
+  resultadosSimulacao = null;
+  inicioSimulacaoTimestamp = null;
   visualAccounts.innerHTML = '';
   svgLines.innerHTML = '';
   locksAtivos.textContent = '0';
   totalTransacoes.textContent = '0';
   btnParar.disabled = true;
+  document.getElementById('resultsOverlay').hidden = true;
 }
 
 // ===== Speed Slider =====
