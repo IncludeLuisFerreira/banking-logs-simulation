@@ -145,3 +145,4 @@ vite.config.ts.timestamp-*
 # Banking simulation runtime data
 app/data/
 app/relatorio.txt
+app/coverage/

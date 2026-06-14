@@ -13,7 +13,6 @@ function getDatabase() {
       fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
       db = new Database(DB_PATH);
       db.pragma('journal_mode = WAL');
-      db.pragma('foreign_keys = ON');
       inicializarTabelas();
     } catch (erro) {
       throw new Error(`Falha ao inicializar banco de dados: ${erro.message}`);
