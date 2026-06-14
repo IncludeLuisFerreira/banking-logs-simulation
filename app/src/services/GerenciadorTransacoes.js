@@ -4,7 +4,7 @@ const RelatorioTransacaoConta = require('./RelatorioTransacaoConta');
 const STATES = {
   SUCCESS: 'SUCCESS',
   INSUFICIENT_FUNDS: 'INSUFICIENT_FUNDS',
-  LOCK_FAILED: 'LOCK_FAILED',
+  CONFLICT: 'CONFLICT',
   INTERRUPTED: 'INTERRUPTED'
 };
 
@@ -63,7 +63,7 @@ class GerenciadorTransacoes {
           case STATES.SUCCESS:
             this.relatorio.push(task, tempoEspera);
             if (this.lockLogger) {
-              this.lockLogger.onEvent('transacao:success', {
+              this.lockLogger.emitEvent('transacao:success', {
                 threadId,
                 origemId: task.getOrigem().getId(),
                 destinoId: task.getDestino().getId(),
@@ -75,7 +75,7 @@ class GerenciadorTransacoes {
           case STATES.INSUFICIENT_FUNDS:
             this.relatorio.incrementaSaldoInsuficiente();
             break;
-          case STATES.LOCK_FAILED:
+          case STATES.CONFLICT:
             this.relatorio.incrementaTentativasLocks();
             this.adicionarTransacao(task);
             break;
@@ -100,57 +100,62 @@ class GerenciadorTransacoes {
 
     if (!c1.ativa || !c2.ativa) return STATES.INTERRUPTED;
 
-    let primeiro, segundo;
-    if (c1.getId() < c2.getId()) {
-      primeiro = c1;
-      segundo = c2;
-    } else if (c1.getId() > c2.getId()) {
-      primeiro = c2;
-      segundo = c1;
-    } else {
-      primeiro = c1;
-      segundo = null;
+    const context = { threadId, origemId: t.getOrigem().getId(), destinoId: t.getDestino().getId() };
+
+    // Read current version (snapshot)
+    const v1 = c1.version;
+
+    // Emit: reading origin
+    if (this.lockLogger) {
+      this.lockLogger.emitEvent('transacao:lendo_origem', {
+        ...context,
+        version: v1,
+        timestamp: Date.now()
+      });
     }
 
-    let lock1 = null;
-    let lock2 = null;
+    // Wait if configured
+    if (this.workerDelayMs > 0) {
+      await new Promise(r => setTimeout(r, this.workerDelayMs));
+    }
 
-    try {
-      const context = { threadId, origemId: t.getOrigem().getId(), destinoId: t.getDestino().getId() };
-      if (this.source) context.source = this.source;
+    // Attempt atomic debit from origin with version check
+    const result = c1.sacar(t.getValorCentavos(), v1);
 
-      lock1 = await primeiro.tryLock(500, context);
-      if (!lock1) {
-        return STATES.LOCK_FAILED;
-      }
-
-      if (this.workerDelayMs > 0) {
-        await new Promise(r => setTimeout(r, this.workerDelayMs));
-      }
-
-      if (segundo !== null) {
-        lock2 = await segundo.tryLock(500, context);
-        if (!lock2) {
-          return STATES.LOCK_FAILED;
+    if (!result.success) {
+      if (result.reason === 'conflict') {
+        if (this.lockLogger) {
+          this.lockLogger.emitEvent('transacao:conflito', {
+            ...context,
+            versionEsperada: v1,
+            versionAtual: c1.version,
+            timestamp: Date.now()
+          });
         }
+        return STATES.CONFLICT;
       }
-
-      if (!c1.ativa || !c2.ativa) {
-        return STATES.INTERRUPTED;
-      }
-
-      if (t.getOrigem().sacar(t.getValorCentavos())) {
-        t.getDestino().depositar(t.getValorCentavos());
-        return STATES.SUCCESS;
-      } else {
-        return STATES.INSUFICIENT_FUNDS;
-      }
-    } catch (e) {
+      if (result.reason === 'insufficient_funds') return STATES.INSUFICIENT_FUNDS;
       return STATES.INTERRUPTED;
-    } finally {
-      if (lock2) lock2.unlock();
-      if (lock1) lock1.unlock();
     }
+
+    // Emit: debit successful
+    if (this.lockLogger) {
+      this.lockLogger.emitEvent('transacao:debitado', {
+        ...context,
+        valorCentavos: t.getValorCentavos(),
+        newVersion: c1.version,
+        timestamp: Date.now()
+      });
+    }
+
+    // Credit destination
+    if (!c2.depositar(t.getValorCentavos())) {
+      // Rollback: restore origin
+      c1.depositar(t.getValorCentavos());
+      return STATES.INTERRUPTED;
+    }
+
+    return STATES.SUCCESS;
   }
 
   async encerrar() {
