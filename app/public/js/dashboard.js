@@ -22,7 +22,7 @@ const btnExportarLogs = document.getElementById('btnExportarLogs');
 
 const API_URL = API_BASE_URL;
 let eventSource = null;
-let lockCounters = { acquired: 0, blocked: 0, timeout: 0 };
+let transactionCounters = { debitados: 0, conflitos: 0 };
 
 function exibirFeedback(mensagem, tipo) {
   feedback.textContent = mensagem;
@@ -166,7 +166,7 @@ async function iniciarSimulacao() {
     simStatus.className = 'status-badge status-running';
     btnPararSim.disabled = false;
     simTransacoes.textContent = result.totalTransacoes || '0';
-    lockCounters = { acquired: 0, blocked: 0, timeout: 0 };
+    transactionCounters = { debitados: 0, conflitos: 0 };
     atualizarCounters();
   } catch (e) {
     exibirFeedback('Erro ao iniciar simulação: ' + e.message, 'error');
@@ -197,25 +197,18 @@ function conectarSSE() {
     adicionarLog('info', 'Conectado ao stream de eventos.');
   });
 
-  eventSource.addEventListener('lock:acquired', (e) => {
+  eventSource.addEventListener('transacao:debitado', (e) => {
     const data = JSON.parse(e.data);
-    lockCounters.acquired++;
+    transactionCounters.debitados++;
     atualizarCounters();
-    adicionarLog('acquired', `${data.threadId} adquiriu lock conta #${data.contaId} (espera: ${data.waitTimeMs}ms)`);
+    adicionarLog('acquired', `${data.threadId} debitou #${data.origemId} (v${data.newVersion})`);
   });
 
-  eventSource.addEventListener('lock:blocked', (e) => {
+  eventSource.addEventListener('transacao:conflito', (e) => {
     const data = JSON.parse(e.data);
-    lockCounters.blocked++;
+    transactionCounters.conflitos++;
     atualizarCounters();
-    adicionarLog('blocked', `${data.threadId} bloqueada aguardando conta #${data.contaId}`);
-  });
-
-  eventSource.addEventListener('lock:timeout', (e) => {
-    const data = JSON.parse(e.data);
-    lockCounters.timeout++;
-    atualizarCounters();
-    adicionarLog('timeout', `${data.threadId} timeout conta #${data.contaId} (${data.timeoutMs}ms)`);
+    adicionarLog('blocked', `${data.threadId} conflito #${data.origemId} (esperava v${data.versionEsperada}, atual v${data.versionAtual})`);
   });
 
   eventSource.addEventListener('transacao:success', (e) => {
@@ -300,9 +293,9 @@ function exportarLogs() {
 }
 
 function atualizarCounters() {
-  counterLocksOk.textContent = lockCounters.acquired;
-  counterLocksBloq.textContent = lockCounters.blocked;
-  counterTimeouts.textContent = lockCounters.timeout;
+  counterLocksOk.textContent = transactionCounters.debitados;
+  counterLocksBloq.textContent = transactionCounters.conflitos;
+  counterTimeouts.textContent = 0;
 }
 
 btnLogout.addEventListener('click', redirecionarLogin);
