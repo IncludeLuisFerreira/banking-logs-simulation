@@ -531,6 +531,8 @@ function mostrarResultados(r) {
 
   animarNumeros('resultsTotal', 0, r.total, 800);
   animarNumeros('resultsSucesso', 0, r.sucesso, 800);
+  animarNumeros('resultsContencao', 0, r.contencao, 800);
+  animarNumeros('resultsDuracao', 0, r.duracao, 800);
 }
 
 function animarNumeros(elementId, start, end, duration) {
@@ -543,7 +545,8 @@ function animarNumeros(elementId, start, end, duration) {
     const progress = Math.min(elapsed / duration, 1);
     const eased = 1 - Math.pow(1 - progress, 3);
     const current = Math.round(start + (end - start) * eased);
-    el.textContent = elementId === 'resultsContencao' ? current + '%' : current;
+    const suffixes = { resultsContencao: '%', resultsDuracao: 's' };
+    el.textContent = current + (suffixes[elementId] || '');
     if (progress < 1) requestAnimationFrame(update);
   }
   requestAnimationFrame(update);
