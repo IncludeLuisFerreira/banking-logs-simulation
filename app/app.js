@@ -1,70 +1,136 @@
+const express = require('express');
+const authService = require('./src/services/AuthService');
+const { autenticar } = require('./src/middleware/auth');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const path = require('path')
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// --- Rotas de Autenticação ---
+
+app.post('/auth/register', (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const usuario = authService.registrar(username, password);
+    res.status(201).json({ id: usuario.id, username: usuario.username });
+  } catch (erro) {
+    const status = erro.status || 500;
+    res.status(status).json({ erro: erro.message });
+  }
+});
+
+app.post('/auth/login', (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const resultado = authService.login(username, password);
+    res.json({ token: resultado.token, username: resultado.usuario.username });
+  } catch (erro) {
+    const status = erro.status || 500;
+    res.status(status).json({ erro: erro.message });
+  }
+});
+
+app.get('/auth/me', autenticar, (req, res) => {
+  try {
+    const usuario = authService.buscarPorId(req.usuario.id);
+    if (!usuario) {
+      return res.status(404).json({ erro: 'Usuário não encontrado' });
+    }
+    res.json(usuario.toJSON());
+  } catch (erro) {
+    res.status(500).json({ erro: erro.message });
+  }
+});
+
+// --- Rotas da Simulação (protegidas) ---
+
+// TODO: adicionar refresh token
+// TODO: implementar rate limiting no login
+// TODO: adicionar roles (admin, operator)
+
 const Conta = require('./src/model/Conta');
 const Transacao = require('./src/model/Transacao');
 const GerenciadorTransacoes = require('./src/services/GerenciadorTransacoes');
 
-async function main() {
-  const NUM_CONTAS = 10000;
-  const NUM_TRANSACOES = 50000;
-  const SALDO_INICIAL = 100000; // R$1000,00 em centavos
+app.post('/simulacao/iniciar', autenticar, async (req, res) => {
+  try {
+    const numContas = parseInt(req.body.numContas) || 1000;
+    const numTransacoes = parseInt(req.body.numTransacoes) || 5000;
+    const saldoInicial = parseInt(req.body.saldoInicial) || 100000;
 
-  const contas = [];
-  for (let i = 0; i < NUM_CONTAS; i++) {
-    contas.push(new Conta(i, SALDO_INICIAL));
-  }
-
-  const gerenciador = new GerenciadorTransacoes();
-
-  // Criando transações aleatórias (origem ≠ destino)
-  for (let i = 0; i < NUM_TRANSACOES; i++) {
-    let origemIndex = Math.floor(Math.random() * NUM_CONTAS);
-    let destinoIndex = Math.floor(Math.random() * NUM_CONTAS);
-    while (origemIndex === destinoIndex) {
-      destinoIndex = Math.floor(Math.random() * NUM_CONTAS);
+    const contas = [];
+    for (let i = 0; i < numContas; i++) {
+      contas.push(new Conta(i, saldoInicial));
     }
-    const origem = contas[origemIndex];
-    const destino = contas[destinoIndex];
-    gerenciador.adicionarTransacao(new Transacao(origem, destino, Math.floor(Math.random() * 100000)));
-  }
 
-  // Teste de starvation: transações de valor baixo no meio
-  for (let i = 0; i < 6; i++) {
-    const origem = contas[Math.floor(Math.random() * NUM_CONTAS)];
-    const destino = contas[Math.floor(Math.random() * NUM_CONTAS)];
-    gerenciador.adicionarTransacao(new Transacao(origem, destino, 10));
-  }
+    const gerenciador = new GerenciadorTransacoes();
 
-  for (let i = 0; i < NUM_TRANSACOES; i++) {
-    let origemIndex = Math.floor(Math.random() * NUM_CONTAS);
-    let destinoIndex = Math.floor(Math.random() * NUM_CONTAS);
-    while (origemIndex === destinoIndex) {
-      destinoIndex = Math.floor(Math.random() * NUM_CONTAS);
+    for (let i = 0; i < numTransacoes; i++) {
+      let origemIndex = Math.floor(Math.random() * numContas);
+      let destinoIndex = Math.floor(Math.random() * numContas);
+      while (origemIndex === destinoIndex) {
+        destinoIndex = Math.floor(Math.random() * numContas);
+      }
+      const origem = contas[origemIndex];
+      const destino = contas[destinoIndex];
+      const valor = Math.floor(Math.random() * 100000);
+      gerenciador.adicionarTransacao(new Transacao(origem, destino, valor));
     }
-    const origem = contas[origemIndex];
-    const destino = contas[destinoIndex];
-    gerenciador.adicionarTransacao(new Transacao(origem, destino, Math.floor(Math.random() * 100000)));
+
+    const inicio = process.hrtime.bigint();
+    gerenciador.start();
+    await gerenciador.encerrar();
+    const fim = process.hrtime.bigint();
+
+    let somaTotal = 0;
+    for (const c of contas) {
+      somaTotal += c.getSaldoCentavos();
+    }
+
+    const tempoMs = Number(fim - inicio) / 1e6;
+    const consistente = Math.abs(somaTotal - (numContas * saldoInicial)) < 0.0001;
+
+    res.json({
+      status: consistente ? 'ok' : 'inconsistencia',
+      numContas,
+      numTransacoes,
+      saldoTotal: somaTotal,
+      saldoEsperado: numContas * saldoInicial,
+      tempoMs: tempoMs.toFixed(2),
+      consistente
+    });
+  } catch (erro) {
+    res.status(500).json({ erro: erro.message });
   }
+});
 
-  const inicio = process.hrtime.bigint();
-  gerenciador.start();
-  await gerenciador.encerrar();
-  const fim = process.hrtime.bigint();
+app.get('/simulacao/resultado', autenticar, (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const relatorioPath = path.resolve(__dirname, 'relatorio.txt');
 
-  let somaTotal = 0;
-  for (const c of contas) {
-    const saldo = c.getSaldoCentavos();
-    somaTotal += saldo;
-    console.log(`Conta ${c.getId()}: Saldo final: R$${(saldo / 100).toFixed(2)}`);
+    if (!fs.existsSync(relatorioPath)) {
+      return res.status(404).json({ erro: 'Nenhum relatório encontrado. Execute uma simulação primeiro.' });
+    }
+
+    const relatorio = fs.readFileSync(relatorioPath, 'utf-8');
+    res.type('text/plain').send(relatorio);
+  } catch (erro) {
+    res.status(500).json({ erro: erro.message });
   }
+});
 
-  console.log(`Soma total dos saldos: R$${(somaTotal / 100).toFixed(2)} (Esperado: R$${(NUM_CONTAS * SALDO_INICIAL / 100).toFixed(2)})`);
-  const tempoMs = Number(fim - inicio) / 1e6;
-  console.log(`Tempo total: ${tempoMs.toFixed(2)} ms`);
+// --- Tratamento de Erros Global ---
+app.use((err, req, res, next) => {
+  console.error('Erro não tratado:', err);
+  res.status(500).json({ erro: 'Erro interno do servidor' });
+});
 
-  if (Math.abs(somaTotal - (NUM_CONTAS * SALDO_INICIAL)) < 0.0001) {
-    console.log('TESTE DE STRESS EXTREMO APROVADO: Nenhuma perda de saldo detectada.');
-  } else {
-    console.log('ERRO: Inconsistência detectada! Verificar implementação.');
-  }
-}
-
-main().catch(console.error);
+app.listen(PORT, () => {
+  console.log(`Banking Simulation API rodando em http://localhost:${PORT}`);
+  console.log(`Ambiente: ${process.env.NODE_ENV || 'desenvolvimento'}`);
+});

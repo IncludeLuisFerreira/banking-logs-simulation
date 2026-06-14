@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banking Simulation — Login</title>
+  <link rel="stylesheet" href="css/login.css">
+<base target="_blank">
+</head>
+<body>
+
+  <main class="login-page">
+    <section class="login-card" id="loginCard">
+      <!-- Header com ícone e título -->
+      <header class="login-card__header">
+        <div class="login-card__icon" aria-hidden="true">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1Z" 
+                  stroke="#0d47a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M12 7V13" stroke="#0d47a1" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="16" r="1" fill="#0d47a1"/>
+          </svg>
+        </div>
+        <h1 class="login-card__title">Banking Simulation</h1>
+        <p class="login-card__subtitle">Acesse sua conta com segurança</p>
+      </header>
+
+      <!-- Formulário de login -->
+      <form class="login-form" id="loginForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="username">Usuário</label>
+          <input 
+            class="form-input" 
+            type="text" 
+            id="username" 
+            name="username" 
+            placeholder="Digite seu usuário" 
+            autocomplete="username"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Senha</label>
+          <input 
+            class="form-input" 
+            type="password" 
+            id="password" 
+            name="password" 
+            placeholder="Digite sua senha" 
+            autocomplete="current-password"
+            required
+            minlength="6"
+          >
+        </div>
+
+        <div class="form-options">
+          <label class="checkbox-wrapper">
+            <input type="checkbox" id="remember" name="remember">
+            <span class="checkbox-checkmark"></span>
+            <span class="checkbox-label">Lembrar-me</span>
+          </label>
+          <a href="#" class="form-link">Esqueci minha senha</a>
+        </div>
+
+        <button type="submit" class="btn btn--primary" id="btnSubmit">
+          <span class="btn__text">Entrar</span>
+          <span class="btn__spinner" hidden>
+            <svg class="spinner" width="20" height="20" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" 
+                      stroke-dasharray="20 31.4" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </button>
+      </form>
+
+      <!-- Feedback de erro/sucesso -->
+      <div class="feedback" id="feedback" role="alert" aria-live="polite" hidden></div>
+    </section>
+
+    <footer class="login-footer">
+      <p>© 2026 Banking Simulation — Projeto Acadêmico</p>
+    </footer>
+  </main>
+
+  <script src="js/login.js"></script>
+</body>
+</html>
