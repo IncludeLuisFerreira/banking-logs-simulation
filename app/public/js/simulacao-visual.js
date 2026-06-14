@@ -233,7 +233,7 @@ function processarEvento(type, data) {
       const total = transacoesConcluidas.length + transacoesEmAndamento.size;
       const sucesso = transacoesConcluidas.length;
       const contencao = total > 0 ? Math.round(((total - sucesso) / total) * 100) : 0;
-      resultadosSimulacao = { total, sucesso, contencao, duracao };
+      resultadosSimulacao = { total, sucesso, contencao, duracao, timestamp: Date.now() };
       mostrarResultados(resultadosSimulacao);
       visualStatus.className = 'status-badge status-concluida';
     }
