@@ -1,10 +1,8 @@
-const Mutex = require('../concurrency/Mutex');
-
 class Conta {
   constructor(id, saldoInicialCentavos) {
     this.id = id;
     this.saldoCentavos = saldoInicialCentavos;
-    this.mutex = new Mutex();
+    this.version = 0;
     this.ativa = true;
   }
 
@@ -12,16 +10,19 @@ class Conta {
     return this.saldoCentavos;
   }
 
-  sacar(valorCentavos) {
-    if (this.saldoCentavos <= 0) return false;
-    if (this.saldoCentavos < valorCentavos) return false;
+  sacar(valorCentavos, versaoEsperada) {
+    if (!this.ativa) return { success: false, reason: 'inactive' };
+    if (this.version !== versaoEsperada) return { success: false, reason: 'conflict' };
+    if (this.saldoCentavos < valorCentavos) return { success: false, reason: 'insufficient_funds' };
     this.saldoCentavos -= valorCentavos;
-    return true;
+    this.version++;
+    return { success: true };
   }
 
   depositar(valorCentavos) {
-    if (valorCentavos <= 0) return false;
+    if (!this.ativa) return false;
     this.saldoCentavos += valorCentavos;
+    this.version++;
     return true;
   }
 
@@ -29,22 +30,8 @@ class Conta {
     return this.id;
   }
 
-  async tryLock(timeoutMs, context = {}) {
-    const ctx = { ...context, contaId: this.id };
-    const result = await this.mutex.tryAcquire(timeoutMs, ctx);
-    if (result.acquired) {
-      let held = true;
-      return {
-        unlock: () => { result.release(); held = false; },
-        isHeld: () => held
-      };
-    }
-    return null;
-  }
-
   remover() {
     this.ativa = false;
-    this.mutex.drainWaiters();
   }
 }
 
