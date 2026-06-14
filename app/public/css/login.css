@@ -244,6 +244,14 @@ body {
   to { transform: rotate(360deg); }
 }
 
+/* Register link */
+.login-card__register {
+  text-align: center;
+  margin-top: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
 /* Feedback */
 .feedback {
   margin-top: 1rem;
