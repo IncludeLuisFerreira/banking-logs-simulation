@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="../css/simulacao-visual.css">
 </head>
 <body>
-  <canvas id="particlesCanvas" class="particles-canvas"></canvas>
+  <canvas id="particlesCanvas" class="particles-canvas" aria-hidden="true"></canvas>
 
   <main class="visual-page">
     <header class="visual-header">
@@ -55,7 +55,7 @@
         <div class="transacao-panel-header">
           <span>Transações</span>
           <span id="painelContador" class="painel-contador"></span>
-          <button id="btnLimparLogTransacoes" class="btn--small">Limpar</button>
+          <button id="btnLimparLogTransacoes" class="btn btn--small">Limpar</button>
         </div>
 
         <div class="painel-secao">
@@ -83,7 +83,7 @@
 
       <div class="visual-center" id="visualCenter">
         <div class="center-ring"></div>
-        <div class="center-icon">🏦</div>
+        <div class="center-icon" role="img" aria-label="Banco Central">🏦</div>
         <div class="center-label">Banco Central</div>
         <div class="center-stats">
           <span>Transferências: <strong id="totalTransacoes">0</strong></span>
@@ -101,7 +101,7 @@
       <span class="legend-item"><span class="legend-dot idle"></span> Livre</span>
     </div>
 
-    <div class="feedback" id="feedback" role="alert" hidden></div>
+    <div class="feedback" id="feedback" role="alert" aria-live="polite" hidden></div>
   </main>
 
   <div class="overlay" id="resultsOverlay" hidden>
