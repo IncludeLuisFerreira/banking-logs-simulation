@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banking Simulation — Cadastro</title>
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+
+  <main class="login-page">
+    <section class="login-card" id="registerCard">
+      <header class="login-card__header">
+        <div class="login-card__icon" aria-hidden="true">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1Z"
+                  stroke="#0d47a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M12 7V13" stroke="#0d47a1" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="16" r="1" fill="#0d47a1"/>
+          </svg>
+        </div>
+        <h1 class="login-card__title">Criar Conta</h1>
+        <p class="login-card__subtitle">Preencha os dados para se cadastrar</p>
+      </header>
+
+      <form class="login-form" id="registerForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="regUsername">Usuário</label>
+          <input
+            class="form-input"
+            type="text"
+            id="regUsername"
+            name="username"
+            placeholder="Escolha um usuário"
+            autocomplete="username"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="regPassword">Senha</label>
+          <input
+            class="form-input"
+            type="password"
+            id="regPassword"
+            name="password"
+            placeholder="Mínimo de 6 caracteres"
+            autocomplete="new-password"
+            required
+            minlength="6"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="regConfirm">Confirmar Senha</label>
+          <input
+            class="form-input"
+            type="password"
+            id="regConfirm"
+            name="confirm"
+            placeholder="Repita a senha"
+            autocomplete="new-password"
+            required
+            minlength="6"
+          >
+        </div>
+
+        <button type="submit" class="btn btn--primary" id="btnRegister">
+          <span class="btn__text">Cadastrar</span>
+          <span class="btn__spinner" hidden>
+            <svg class="spinner" width="20" height="20" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"
+                      stroke-dasharray="20 31.4" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </button>
+      </form>
+
+      <p class="login-card__register">
+        Já tem conta? <a href="index.html" class="form-link">Fazer login</a>
+      </p>
+
+      <div class="feedback" id="feedback" role="alert" aria-live="polite" hidden></div>
+    </section>
+
+    <footer class="login-footer">
+      <p>© 2026 Banking Simulation — Projeto Acadêmico</p>
+    </footer>
+  </main>
+
+  <script src="js/register.js"></script>
+</body>
+</html>
