@@ -490,7 +490,7 @@ function renderizarArrows() {
       marker.setAttribute('refY', '3.5');
       marker.setAttribute('orient', 'auto');
       marker.classList.add('arrow-marker');
-      const colors = { requesting: '#4fc3f7', locked: '#4fc3f7', blocked: '#ef5350', timeout: '#ef5350', success: '#00e676' };
+      const colors = { reading: '#4fc3f7', locked: '#4fc3f7', conflito: '#ff6d00', success: '#00e676' };
       const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
       poly.setAttribute('points', '0 0, 10 3.5, 0 7');
       poly.setAttribute('fill', colors[entry.arrowState] || '#555');
