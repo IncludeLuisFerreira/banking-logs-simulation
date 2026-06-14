@@ -5,6 +5,7 @@ class Conta {
     this.id = id;
     this.saldoCentavos = saldoInicialCentavos;
     this.mutex = new Mutex();
+    this.ativa = true;
   }
 
   getSaldoCentavos() {
@@ -28,8 +29,9 @@ class Conta {
     return this.id;
   }
 
-  async tryLock(timeoutMs) {
-    const result = await this.mutex.tryAcquire(timeoutMs);
+  async tryLock(timeoutMs, context = {}) {
+    const ctx = { ...context, contaId: this.id };
+    const result = await this.mutex.tryAcquire(timeoutMs, ctx);
     if (result.acquired) {
       return {
         unlock: () => result.release(),
@@ -37,6 +39,15 @@ class Conta {
       };
     }
     return null;
+  }
+
+  remover() {
+    this.ativa = false;
+    const waiters = this.mutex._waiters;
+    this.mutex._waiters = [];
+    waiters.forEach(resolve => {
+      resolve(() => {});
+    });
   }
 }
 
