@@ -101,6 +101,7 @@ class GerenciadorTransacoes {
     if (!c1.ativa || !c2.ativa) return STATES.INTERRUPTED;
 
     const context = { threadId, origemId: t.getOrigem().getId(), destinoId: t.getDestino().getId() };
+    if (this.source) context.source = this.source;
 
     // Read current version (snapshot)
     const v1 = c1.version;
