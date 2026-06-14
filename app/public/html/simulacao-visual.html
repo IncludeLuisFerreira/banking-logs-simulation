@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="../css/simulacao-visual.css">
 </head>
 <body>
+  <canvas id="particlesCanvas" class="particles-canvas"></canvas>
+
   <main class="visual-page">
     <header class="visual-header">
       <a href="dashboard.html" class="btn btn--back">← Voltar ao Dashboard</a>
@@ -35,9 +37,9 @@
         <input type="number" id="inputTransMax" class="form-input input-small" value="40" min="1" placeholder="máx">
       </div>
 
-      <button id="btnIniciar" class="btn btn--primary">▶ Iniciar</button>
-      <button id="btnParar" class="btn btn--danger" disabled>■ Parar</button>
-      <button id="btnLimpar" class="btn">Limpar</button>
+      <button id="btnIniciar" class="btn btn--start">▶ Iniciar</button>
+      <button id="btnParar" class="btn btn--stop" disabled>■ Parar</button>
+      <button id="btnLimpar" class="btn btn--ghost">Limpar</button>
       <span id="visualStatus" class="status-badge status-idle">Parado</span>
     </div>
 
@@ -52,34 +54,80 @@
       <div class="transacao-panel" id="transacaoPanel">
         <div class="transacao-panel-header">
           <span>Transações</span>
+          <span id="painelContador" class="painel-contador"></span>
           <button id="btnLimparLogTransacoes" class="btn--small">Limpar</button>
         </div>
-        <div class="transacao-logs" id="transacaoLogs">
-          <p class="transacao-placeholder">Nenhuma transação ainda.</p>
+
+        <div class="painel-secao">
+          <div class="painel-secao-header">
+            <span class="painel-secao-titulo">Em Andamento</span>
+            <span id="contadorEmAndamento" class="painel-badge">0</span>
+          </div>
+          <div class="painel-secao-lista" id="painelEmAndamento">
+            <p class="painel-placeholder">Nenhuma transação em andamento.</p>
+          </div>
+        </div>
+
+        <div class="painel-secao">
+          <div class="painel-secao-header">
+            <span class="painel-secao-titulo">Concluídas</span>
+            <span id="contadorConcluidas" class="painel-badge painel-badge--success">0</span>
+          </div>
+          <div class="painel-secao-lista" id="painelConcluidas">
+            <p class="painel-placeholder">Nenhuma transação concluída.</p>
+          </div>
         </div>
       </div>
 
       <svg id="svgLines" class="visual-svg"></svg>
+
       <div class="visual-center" id="visualCenter">
-        <div class="center-icon">📡</div>
+        <div class="center-ring"></div>
+        <div class="center-icon">🏦</div>
         <div class="center-label">Banco Central</div>
         <div class="center-stats">
           <span>Transferências: <strong id="totalTransacoes">0</strong></span>
           <span>Locks ativos: <strong id="locksAtivos">0</strong></span>
         </div>
       </div>
+
       <div class="visual-accounts" id="visualAccounts"></div>
     </div>
 
     <div class="visual-legend">
-      <span class="legend-item"><span class="legend-color requesting"></span> Solicitando</span>
-      <span class="legend-item"><span class="legend-color locked"></span> Lock Adquirido</span>
-      <span class="legend-item"><span class="legend-color blocked"></span> Bloqueado</span>
-      <span class="legend-item"><span class="legend-color idle"></span> Livre</span>
+      <span class="legend-item"><span class="legend-dot requesting"></span> Solicitando</span>
+      <span class="legend-item"><span class="legend-dot locked"></span> Lock</span>
+      <span class="legend-item"><span class="legend-dot blocked"></span> Bloqueado</span>
+      <span class="legend-item"><span class="legend-dot idle"></span> Livre</span>
     </div>
 
     <div class="feedback" id="feedback" role="alert" hidden></div>
   </main>
+
+  <div class="overlay" id="resultsOverlay" hidden>
+    <div class="overlay-card">
+      <h2 class="overlay-title">Simulação Concluída!</h2>
+      <div class="overlay-stats">
+        <div class="overlay-stat">
+          <span class="overlay-stat-value" id="resultsTotal">0</span>
+          <span class="overlay-stat-label">Total</span>
+        </div>
+        <div class="overlay-stat">
+          <span class="overlay-stat-value" id="resultsSucesso">0</span>
+          <span class="overlay-stat-label">Sucesso</span>
+        </div>
+        <div class="overlay-stat">
+          <span class="overlay-stat-value" id="resultsContencao">0%</span>
+          <span class="overlay-stat-label">Contenção</span>
+        </div>
+        <div class="overlay-stat">
+          <span class="overlay-stat-value" id="resultsDuracao">0s</span>
+          <span class="overlay-stat-label">Duração</span>
+        </div>
+      </div>
+      <button id="btnNovaSimulacao" class="btn btn--start">🔄 Nova Simulação</button>
+    </div>
+  </div>
 
   <script src="../js/api.js"></script>
   <script src="../js/simulacao-visual.js"></script>
