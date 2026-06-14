@@ -1,0 +1,9 @@
+services:
+  app:
+    build: ./app
+    container_name: banking-sistem
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./app/logs:/app/logs
+    restart: unless-stopped
