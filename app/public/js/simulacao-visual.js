@@ -516,6 +516,39 @@ function atualizarStats() {
   totalTransacoes.textContent = stats.transacoes;
 }
 
+// ===== Results Overlay =====
+function mostrarResultados(r) {
+  const overlay = document.getElementById('resultsOverlay');
+  if (!overlay) return;
+
+  document.getElementById('resultsTotal').textContent = r.total;
+  document.getElementById('resultsSucesso').textContent = r.sucesso;
+  document.getElementById('resultsContencao').textContent = r.contencao + '%';
+  document.getElementById('resultsDuracao').textContent = r.duracao + 's';
+
+  overlay.hidden = false;
+  overlay.style.display = 'flex';
+
+  animarNumeros('resultsTotal', 0, r.total, 800);
+  animarNumeros('resultsSucesso', 0, r.sucesso, 800);
+}
+
+function animarNumeros(elementId, start, end, duration) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  const startTime = performance.now();
+
+  function update(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(start + (end - start) * eased);
+    el.textContent = elementId === 'resultsContencao' ? current + '%' : current;
+    if (progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+
 // ===== Account Positioning =====
 function renderizarContas(contas) {
   const rect = visualArena.getBoundingClientRect();
@@ -644,6 +677,7 @@ function limpar() {
   totalTransacoes.textContent = '0';
   btnParar.disabled = true;
   document.getElementById('resultsOverlay').hidden = true;
+  document.getElementById('resultsOverlay').style.display = '';
 }
 
 // ===== Speed Slider =====
@@ -669,5 +703,10 @@ btnIniciar.addEventListener('click', iniciarSimulacao);
 btnParar.addEventListener('click', pararSimulacao);
 btnLimpar.addEventListener('click', limpar);
 inputNumContas.addEventListener('keydown', (e) => { if (e.key === 'Enter') iniciarSimulacao(); });
+
+document.getElementById('btnNovaSimulacao').addEventListener('click', () => {
+  document.getElementById('resultsOverlay').hidden = true;
+  document.getElementById('resultsOverlay').style.display = '';
+});
 
 initParticles();
