@@ -26,6 +26,59 @@ const randomControls = document.getElementById('randomControls');
 const inputTransMin = document.getElementById('inputTransMin');
 const inputTransMax = document.getElementById('inputTransMax');
 
+// ===== Particle System =====
+const particlesCanvas = document.getElementById('particlesCanvas');
+const pCtx = particlesCanvas ? particlesCanvas.getContext('2d') : null;
+let particles = [];
+let particleAnimId = null;
+
+function initParticles() {
+  if (!pCtx) return;
+  particlesCanvas.width = window.innerWidth;
+  particlesCanvas.height = window.innerHeight;
+  particles = [];
+  const count = 60;
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: Math.random() * particlesCanvas.width,
+      y: Math.random() * particlesCanvas.height,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: -0.1 - Math.random() * 0.2,
+      r: 1 + Math.random() * 2,
+      o: 0.1 + Math.random() * 0.2
+    });
+  }
+  particleAnimId = requestAnimationFrame(animateParticles);
+}
+
+function animateParticles() {
+  if (!pCtx) return;
+  pCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
+
+  for (const p of particles) {
+    p.x += p.vx;
+    p.y += p.vy;
+    if (p.y < -5) { p.y = particlesCanvas.height + 5; p.x = Math.random() * particlesCanvas.width; }
+    if (p.x < -5) p.x = particlesCanvas.width + 5;
+    if (p.x > particlesCanvas.width + 5) p.x = -5;
+
+    pCtx.beginPath();
+    pCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    pCtx.fillStyle = `rgba(0, 212, 255, ${p.o})`;
+    pCtx.fill();
+  }
+
+  particleAnimId = requestAnimationFrame(animateParticles);
+}
+
+function resizeParticles() {
+  if (!particlesCanvas) return;
+  particlesCanvas.width = window.innerWidth;
+  particlesCanvas.height = window.innerHeight;
+}
+
+window.addEventListener('resize', resizeParticles);
+
 const API_URL = API_BASE_URL;
 
 // --- Auth ---
@@ -616,3 +669,5 @@ btnIniciar.addEventListener('click', iniciarSimulacao);
 btnParar.addEventListener('click', pararSimulacao);
 btnLimpar.addEventListener('click', limpar);
 inputNumContas.addEventListener('keydown', (e) => { if (e.key === 'Enter') iniciarSimulacao(); });
+
+initParticles();
