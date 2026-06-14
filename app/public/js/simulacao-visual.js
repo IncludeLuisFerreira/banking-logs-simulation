@@ -261,7 +261,10 @@ function processarEvento(type, data) {
   }
 
   else if (type === 'simulacao-visual:iniciada') {
-    contasData = data.contas || [];
+    if (contasData.length === 0) {
+      contasData = data.contas || [];
+      renderizarContas(contasData);
+    }
     accountStates.clear();
     activeArrows.clear();
     transacoesEmAndamento.clear();
