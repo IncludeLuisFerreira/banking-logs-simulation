@@ -26,6 +26,12 @@ const randomControls = document.getElementById('randomControls');
 const inputTransMin = document.getElementById('inputTransMin');
 const inputTransMax = document.getElementById('inputTransMax');
 const selectEstrategia = document.getElementById('selectEstrategia');
+const deadlockOverlay = document.getElementById('deadlockOverlay');
+const deadlockDesc = document.getElementById('deadlockDesc');
+const deadlockCycle = document.getElementById('deadlockCycle');
+const deadlockBadges = document.getElementById('deadlockBadges');
+const btnDeadlockVerArena = document.getElementById('btnDeadlockVerArena');
+const btnDeadlockVoltar = document.getElementById('btnDeadlockVoltar');
 
 // ===== Particle System =====
 const particlesCanvas = document.getElementById('particlesCanvas');
@@ -116,7 +122,18 @@ function exibirFeedback(mensagem, tipo) {
 // ===== MODE SELECTOR =====
 modeRadios.forEach(radio => {
   radio.addEventListener('change', () => {
-    randomControls.hidden = radio.value !== 'random';
+    const isRandom = radio.value === 'random';
+    const isDeadlock = radio.value === 'force-deadlock';
+    randomControls.hidden = !isRandom;
+    selectEstrategia.disabled = isDeadlock;
+    if (isDeadlock) {
+      selectEstrategia.value = 'lock-naive';
+      inputNumContas.min = 3;
+      if (parseInt(inputNumContas.value) < 3) inputNumContas.value = 3;
+    } else {
+      inputNumContas.min = 5;
+      selectEstrategia.disabled = false;
+    }
   });
 });
 
@@ -130,7 +147,7 @@ function conectarSSE() {
 
   eventSource = new EventSource(`${API_URL}/simulacao/stream?token=${token}`);
 
-  const eventTypes = ['transacao:lendo_origem', 'transacao:conflito', 'transacao:debitado', 'transacao:success', 'lock:request', 'lock:acquired', 'lock:blocked', 'lock:released', 'lock:timeout', 'simulacao-visual:iniciada', 'simulacao-visual:finalizada', 'simulacao-visual:parada'];
+  const eventTypes = ['transacao:lendo_origem', 'transacao:conflito', 'transacao:debitado', 'transacao:success', 'lock:request', 'lock:acquired', 'lock:blocked', 'lock:released', 'lock:timeout', 'simulacao-visual:iniciada', 'simulacao-visual:finalizada', 'simulacao-visual:parada', 'simulacao:deadlock_detectado'];
 
   for (const type of eventTypes) {
     eventSource.addEventListener(type, (e) => {
@@ -361,6 +378,33 @@ function processarEvento(type, data) {
         }
       }, 100);
     }
+  }
+
+  else if (type === 'simulacao:deadlock_detectado') {
+    pararTimer();
+    simulacaoAtiva = false;
+    visualStatus.textContent = 'Deadlock';
+    visualStatus.className = 'status-badge status-deadlock';
+    btnParar.disabled = true;
+    btnIniciar.disabled = false;
+
+    const { ciclo, contasEnvolvidas } = data;
+    deadlockDesc.textContent = data.descricao || 'Ciclo de bloqueio detectado entre as transações.';
+
+    deadlockCycle.innerHTML = (ciclo || []).map(c => `
+      <div class="deadlock-cycle-row">
+        <span class="deadlock-badge deadlock-badge--tx">T${c.transacaoId}</span>
+        <span style="color:#8b949e;font-size:12px">esperando</span>
+        <span class="deadlock-badge deadlock-badge--conta">Conta ${String.fromCharCode(64 + c.contaId)}</span>
+      </div>
+    `).join('');
+
+    deadlockBadges.innerHTML = (contasEnvolvidas || []).map(id =>
+      `<span class="deadlock-badge deadlock-badge--conta">Conta ${String.fromCharCode(64 + id)}</span>`
+    ).join('');
+
+    deadlockOverlay.hidden = false;
+    deadlockOverlay.style.display = 'flex';
   }
 }
 
@@ -676,8 +720,9 @@ function renderizarContas(contas) {
 // ===== Simulation Lifecycle =====
 async function iniciarSimulacao() {
   const numContas = parseInt(inputNumContas.value) || 8;
-  if (numContas < 5 || numContas > 30) {
-    exibirFeedback('Número de contas deve ser entre 5 e 30', 'error');
+  const minContas = mode === 'force-deadlock' ? 3 : 5;
+  if (numContas < minContas || numContas > 30) {
+    exibirFeedback(`Número de contas deve ser entre ${minContas} e 30`, 'error');
     return;
   }
 
@@ -807,6 +852,26 @@ overlay.addEventListener('click', (e) => {
 document.getElementById('btnNovaSimulacao').addEventListener('click', fecharOverlay);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !overlay.hidden) fecharOverlay();
+});
+
+btnDeadlockVerArena.addEventListener('click', () => {
+  deadlockOverlay.hidden = true;
+  deadlockOverlay.style.display = '';
+});
+
+btnDeadlockVoltar.addEventListener('click', () => {
+  deadlockOverlay.hidden = true;
+  deadlockOverlay.style.display = '';
+  limpar();
+  visualStatus.textContent = 'Parado';
+  visualStatus.className = 'status-badge status-idle';
+});
+
+deadlockOverlay.addEventListener('click', (e) => {
+  if (e.target === deadlockOverlay) {
+    deadlockOverlay.hidden = true;
+    deadlockOverlay.style.display = '';
+  }
 });
 
 initParticles();
