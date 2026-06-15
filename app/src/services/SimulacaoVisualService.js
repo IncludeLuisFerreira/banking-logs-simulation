@@ -1,6 +1,7 @@
 const Conta = require('../model/Conta');
 const Transacao = require('../model/Transacao');
 const GerenciadorTransacoes = require('./GerenciadorTransacoes');
+const DeadlockDetector = require('../concurrency/DeadlockDetector');
 
 class SimulacaoVisualService {
   constructor(lockLogger) {
@@ -71,10 +72,29 @@ class SimulacaoVisualService {
     return transacoes;
   }
 
+  _gerarTransacoesDeadlock(numContas) {
+    const transacoes = [];
+    const contasArray = Array.from(this.contas.values());
+    for (let i = 0; i < numContas; i++) {
+      const origem = contasArray[i];
+      const destino = contasArray[(i + 1) % numContas];
+      const saldo = origem.conta.getSaldoCentavos();
+      const valor = Math.floor(Math.random() * Math.min(saldo, 10000)) + 1;
+      transacoes.push(new Transacao(origem.conta, destino.conta, valor));
+    }
+    return transacoes;
+  }
+
   async iniciar(numContas, mode = 'nxn', transacaoRange = {}, estrategia = 'otimista') {
     if (this.running) return { error: 'Simulação visual já em andamento' };
-    if (!Number.isInteger(numContas) || numContas < 5 || numContas > 30) {
-      return { error: 'Número de contas deve ser um inteiro entre 5 e 30' };
+    const minContas = mode === 'force-deadlock' ? 3 : 5;
+    const maxContas = 30;
+    if (!Number.isInteger(numContas) || numContas < minContas || numContas > maxContas) {
+      return { error: `Número de contas deve ser um inteiro entre ${minContas} e ${maxContas}` };
+    }
+
+    if (mode === 'force-deadlock') {
+      estrategia = 'lock-naive';
     }
 
     this.running = true;
@@ -97,7 +117,9 @@ class SimulacaoVisualService {
     });
 
     let transacoes;
-    if (mode === 'random') {
+    if (mode === 'force-deadlock') {
+      transacoes = this._gerarTransacoesDeadlock(numContas);
+    } else if (mode === 'random') {
       const minT = parseInt(transacaoRange.min) || 10;
       const maxT = parseInt(transacaoRange.max) || 50;
       const quantidade = Math.floor(Math.random() * (maxT - minT + 1)) + minT;
@@ -106,7 +128,11 @@ class SimulacaoVisualService {
       transacoes = this._gerarTransacoesNxN();
     }
 
-    this.gerenciador = new GerenciadorTransacoes(this.lockLogger);
+    let deadlockDetector = null;
+    if (mode === 'force-deadlock') {
+      deadlockDetector = new DeadlockDetector();
+    }
+    this.gerenciador = new GerenciadorTransacoes(this.lockLogger, deadlockDetector);
     this.gerenciador.NUM_WORKERS = numWorkers;
     this.gerenciador.workerDelayMs = 300;
     this.gerenciador.source = 'visual';
