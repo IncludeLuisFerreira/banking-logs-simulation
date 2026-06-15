@@ -188,21 +188,22 @@ class GerenciadorTransacoes {
       return STATES.INTERRUPTED;
     }
 
+    let resultado = STATES.SUCCESS;
     try {
       const r = c1.sacarSemLock(t.getValorCentavos());
       if (!r.success) {
-        if (r.reason === 'insufficient_funds') return STATES.INSUFICIENT_FUNDS;
-        return STATES.INTERRUPTED;
+        if (r.reason === 'insufficient_funds') { resultado = STATES.INSUFICIENT_FUNDS; return resultado; }
+        resultado = STATES.INTERRUPTED; return resultado;
       }
       if (!c2.depositarSemLock(t.getValorCentavos())) {
         c1.depositarSemLock(t.getValorCentavos());
-        return STATES.INTERRUPTED;
+        resultado = STATES.INTERRUPTED; return resultado;
       }
-      this._emitirSuccess(t, threadId);
-      return STATES.SUCCESS;
+      return resultado;
     } finally {
       release2();
       release1();
+      if (resultado === STATES.SUCCESS) this._emitirSuccess(t, threadId);
     }
   }
 
@@ -230,21 +231,22 @@ class GerenciadorTransacoes {
       return STATES.INTERRUPTED;
     }
 
+    let resultado = STATES.SUCCESS;
     try {
       const r = c1.sacarSemLock(t.getValorCentavos());
       if (!r.success) {
-        if (r.reason === 'insufficient_funds') return STATES.INSUFICIENT_FUNDS;
-        return STATES.INTERRUPTED;
+        if (r.reason === 'insufficient_funds') { resultado = STATES.INSUFICIENT_FUNDS; return resultado; }
+        resultado = STATES.INTERRUPTED; return resultado;
       }
       if (!c2.depositarSemLock(t.getValorCentavos())) {
         c1.depositarSemLock(t.getValorCentavos());
-        return STATES.INTERRUPTED;
+        resultado = STATES.INTERRUPTED; return resultado;
       }
-      this._emitirSuccess(t, threadId);
-      return STATES.SUCCESS;
+      return resultado;
     } finally {
       releaseSegundo();
       releasePrimeiro();
+      if (resultado === STATES.SUCCESS) this._emitirSuccess(t, threadId);
     }
   }
 
@@ -273,21 +275,22 @@ class GerenciadorTransacoes {
       return STATES.LOCK_FAILED;
     }
 
+    let resultado = STATES.SUCCESS;
     try {
       const r = c1.sacarSemLock(t.getValorCentavos());
       if (!r.success) {
-        if (r.reason === 'insufficient_funds') return STATES.INSUFICIENT_FUNDS;
-        return STATES.INTERRUPTED;
+        if (r.reason === 'insufficient_funds') { resultado = STATES.INSUFICIENT_FUNDS; return resultado; }
+        resultado = STATES.INTERRUPTED; return resultado;
       }
       if (!c2.depositarSemLock(t.getValorCentavos())) {
         c1.depositarSemLock(t.getValorCentavos());
-        return STATES.INTERRUPTED;
+        resultado = STATES.INTERRUPTED; return resultado;
       }
-      this._emitirSuccess(t, threadId);
-      return STATES.SUCCESS;
+      return resultado;
     } finally {
       lock2.release();
       lock1.release();
+      if (resultado === STATES.SUCCESS) this._emitirSuccess(t, threadId);
     }
   }
 
