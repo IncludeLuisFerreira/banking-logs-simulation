@@ -294,10 +294,15 @@ class GerenciadorTransacoes {
     }
   }
 
-  async encerrar() {
+  async encerrar(timeoutMs = 60000) {
     this.running = false;
+    const deadline = Date.now() + timeoutMs;
     while (this.taskEmProcesso > 0) {
-      await new Promise(r => setTimeout(r, 10));
+      if (Date.now() > deadline) {
+        this.relatorio.write();
+        return;
+      }
+      await new Promise(r => setTimeout(r, 50));
     }
     await Promise.allSettled(this.workers);
     this.relatorio.write();
