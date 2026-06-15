@@ -1004,3 +1004,160 @@ body:has(.visual-page) {
   0% { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-20px); }
 }
+
+.deadlock-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+}
+
+.deadlock-overlay[hidden] {
+  display: none;
+}
+
+.deadlock-modal {
+  background: #0d1117;
+  border: 2px solid #ff6b6b;
+  border-radius: 14px;
+  padding: 32px;
+  max-width: 460px;
+  width: 90%;
+  text-align: center;
+  animation: deadlockSlideUp 0.4s ease-out;
+  box-shadow: 0 0 40px rgba(255, 107, 107, 0.3);
+}
+
+@keyframes deadlockSlideUp {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.deadlock-icon {
+  font-size: 56px;
+  margin-bottom: 12px;
+}
+
+.deadlock-title {
+  color: #ff6b6b;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.deadlock-subtitle {
+  color: #8b949e;
+  font-size: 13px;
+  margin: 0 0 20px;
+}
+
+.deadlock-desc {
+  color: #c9d1d9;
+  font-size: 13px;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.deadlock-cycle {
+  background: #161b22;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.deadlock-cycle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: #0d1117;
+  border-radius: 6px;
+  border-left: 3px solid #58a6ff;
+  margin-bottom: 8px;
+}
+
+.deadlock-cycle-row:last-child {
+  margin-bottom: 0;
+}
+
+.deadlock-badge {
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.deadlock-badge--tx {
+  background: rgba(88, 166, 255, 0.15);
+  color: #58a6ff;
+}
+
+.deadlock-badge--conta {
+  background: rgba(240, 192, 64, 0.15);
+  color: #f0c040;
+}
+
+.deadlock-badges {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.deadlock-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.deadlock-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.2s;
+}
+
+.deadlock-btn:hover {
+  opacity: 0.85;
+}
+
+.deadlock-btn--primary {
+  background: #238636;
+  color: #fff;
+}
+
+.deadlock-btn--secondary {
+  background: #21262d;
+  color: #c9d1d9;
+  border: 1px solid #30363d;
+}
+
+.radio-label--danger input[type="radio"] {
+  accent-color: #ff6b6b;
+}
+
+.radio-label--danger {
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.radio-hint {
+  font-weight: 400;
+  font-size: 11px;
+  color: #8b949e;
+  margin-left: 2px;
+}
+
+.status-deadlock {
+  background: #ff6b6b22;
+  color: #ff6b6b;
+  border: 1px solid #ff6b6b;
+  font-weight: 700;
+}
