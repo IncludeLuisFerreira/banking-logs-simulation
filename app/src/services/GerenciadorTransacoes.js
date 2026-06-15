@@ -6,11 +6,12 @@ const STATES = {
   INSUFICIENT_FUNDS: 'INSUFICIENT_FUNDS',
   CONFLICT: 'CONFLICT',
   LOCK_FAILED: 'LOCK_FAILED',
-  INTERRUPTED: 'INTERRUPTED'
+  INTERRUPTED: 'INTERRUPTED',
+  DEADLOCK: 'DEADLOCK'
 };
 
 class GerenciadorTransacoes {
-  constructor(lockLogger = null) {
+  constructor(lockLogger = null, deadlockDetector = null) {
     this.fila = new AsyncPriorityQueue((a, b) => {
       return b.calcularPrioridade() - a.calcularPrioridade();
     });
@@ -21,6 +22,7 @@ class GerenciadorTransacoes {
     this.tempoTotalEsperaMilis = 0;
     this.workers = [];
     this.lockLogger = lockLogger;
+    this.deadlockDetector = deadlockDetector;
     this.totalTransacoes = 0;
     this.workerDelayMs = 0;
     this.source = null;
@@ -74,6 +76,7 @@ class GerenciadorTransacoes {
             this.relatorio.incrementaTentativasLocks();
             this.adicionarTransacao(task);
             break;
+          case STATES.DEADLOCK:
           case STATES.INTERRUPTED:
             break;
         }
@@ -90,6 +93,7 @@ class GerenciadorTransacoes {
   async executar(t, threadId = 'unknown') {
     switch (this.modo) {
       case 'lock-naive':
+      case 'deadlock':
         return this._executarLockNaive(t, threadId);
       case 'lock-ordenado':
         return this._executarLockOrdenado(t, threadId);
@@ -119,6 +123,7 @@ class GerenciadorTransacoes {
   _makeContext(task, threadId) {
     const ctx = {
       threadId,
+      transacaoId: task.id,
       origemId: task.getOrigem().getId(),
       destinoId: task.getDestino().getId()
     };
@@ -175,17 +180,62 @@ class GerenciadorTransacoes {
     context.contaId = c1.getId();
     const release1 = await c1.mutex.acquire({ ...context, timestamp: Date.now() });
 
+    if (this.deadlockDetector) {
+      this.deadlockDetector.acquireHold(t.id, c1.getId());
+    }
+
     if (this.workerDelayMs > 0) {
       await new Promise(r => setTimeout(r, this.workerDelayMs));
     }
 
     context.contaId = c2.getId();
+
+    if (this.deadlockDetector) {
+      this.deadlockDetector.registerWait(t.id, c2.getId());
+      const ciclo = this.deadlockDetector.checkDeadlock(t.id);
+      if (ciclo) {
+        const contasEnvolvidas = [...new Set(ciclo.map(c => c.contaId))];
+        const transacoesEnvolvidas = [...new Set(ciclo.map(c => c.transacaoId))];
+        const transacoesHolding = [];
+        for (const [contaId, transacaoId] of this.deadlockDetector.holds.entries()) {
+          if (contasEnvolvidas.includes(contaId)) {
+            transacoesHolding.push({ transacaoId, contaId });
+          }
+        }
+        this._emitir('simulacao:deadlock_detectado', {
+          ciclo: ciclo.map(c => ({
+            ...c,
+            descricao: `T${c.transacaoId} esperando Conta ${String.fromCharCode(64 + c.contaId)}`
+          })),
+          contasEnvolvidas,
+          transacoesEnvolvidas,
+          transacoesHolding,
+          simId: this.simId,
+          timestamp: Date.now()
+        });
+        this.running = false;
+        release1();
+        this.deadlockDetector.releaseHold(c1.getId());
+        this.deadlockDetector.releaseWait(t.id);
+        return STATES.DEADLOCK;
+      }
+    }
+
     let release2;
     try {
       release2 = await c2.mutex.acquire({ ...context, timestamp: Date.now() });
     } catch {
       release1();
+      if (this.deadlockDetector) {
+        this.deadlockDetector.releaseHold(c1.getId());
+        this.deadlockDetector.releaseWait(t.id);
+      }
       return STATES.INTERRUPTED;
+    }
+
+    if (this.deadlockDetector) {
+      this.deadlockDetector.acquireHold(t.id, c2.getId());
+      this.deadlockDetector.releaseWait(t.id);
     }
 
     let resultado = STATES.SUCCESS;
@@ -203,6 +253,11 @@ class GerenciadorTransacoes {
     } finally {
       release2();
       release1();
+      if (this.deadlockDetector) {
+        this.deadlockDetector.releaseHold(c1.getId());
+        this.deadlockDetector.releaseHold(c2.getId());
+        this.deadlockDetector.releaseWait(t.id);
+      }
       if (resultado === STATES.SUCCESS) this._emitirSuccess(t, threadId);
     }
   }
