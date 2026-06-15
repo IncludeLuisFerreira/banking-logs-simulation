@@ -194,7 +194,10 @@ class GerenciadorTransacoes {
         if (r.reason === 'insufficient_funds') return STATES.INSUFICIENT_FUNDS;
         return STATES.INTERRUPTED;
       }
-      c2.depositarSemLock(t.getValorCentavos());
+      if (!c2.depositarSemLock(t.getValorCentavos())) {
+        c1.depositarSemLock(t.getValorCentavos());
+        return STATES.INTERRUPTED;
+      }
       this._emitirSuccess(t, threadId);
       return STATES.SUCCESS;
     } finally {
@@ -233,7 +236,10 @@ class GerenciadorTransacoes {
         if (r.reason === 'insufficient_funds') return STATES.INSUFICIENT_FUNDS;
         return STATES.INTERRUPTED;
       }
-      c2.depositarSemLock(t.getValorCentavos());
+      if (!c2.depositarSemLock(t.getValorCentavos())) {
+        c1.depositarSemLock(t.getValorCentavos());
+        return STATES.INTERRUPTED;
+      }
       this._emitirSuccess(t, threadId);
       return STATES.SUCCESS;
     } finally {
@@ -273,7 +279,10 @@ class GerenciadorTransacoes {
         if (r.reason === 'insufficient_funds') return STATES.INSUFICIENT_FUNDS;
         return STATES.INTERRUPTED;
       }
-      c2.depositarSemLock(t.getValorCentavos());
+      if (!c2.depositarSemLock(t.getValorCentavos())) {
+        c1.depositarSemLock(t.getValorCentavos());
+        return STATES.INTERRUPTED;
+      }
       this._emitirSuccess(t, threadId);
       return STATES.SUCCESS;
     } finally {

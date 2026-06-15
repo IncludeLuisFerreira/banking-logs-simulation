@@ -23,7 +23,7 @@ class Conta {
   }
 
   sacarSemLock(valorCentavos) {
-    if (!this.ativa) return false;
+    if (!this.ativa) return { success: false, reason: 'inactive' };
     if (this.saldoCentavos < valorCentavos) return { success: false, reason: 'insufficient_funds' };
     this.saldoCentavos -= valorCentavos;
     return { success: true };
