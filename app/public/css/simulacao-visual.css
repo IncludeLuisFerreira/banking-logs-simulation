@@ -1034,9 +1034,20 @@ body:has(.visual-page) {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.deadlock-icon {
-  font-size: 56px;
-  margin-bottom: 12px;
+.deadlock-logo-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 16px;
+}
+
+.deadlock-logo {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
 }
 
 .deadlock-title {
