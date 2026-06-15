@@ -720,13 +720,12 @@ function renderizarContas(contas) {
 // ===== Simulation Lifecycle =====
 async function iniciarSimulacao() {
   const numContas = parseInt(inputNumContas.value) || 8;
+  const mode = document.querySelector('input[name="simMode"]:checked').value;
   const minContas = mode === 'force-deadlock' ? 3 : 5;
   if (numContas < minContas || numContas > 30) {
     exibirFeedback(`Número de contas deve ser entre ${minContas} e 30`, 'error');
     return;
   }
-
-  const mode = document.querySelector('input[name="simMode"]:checked').value;
   const estrategia = selectEstrategia.value;
   const transacaoRange = mode === 'random' ? {
     min: parseInt(inputTransMin.value) || 15,
