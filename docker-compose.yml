@@ -32,6 +32,7 @@ services:
   loki:
     image: grafana/loki:latest
     container_name: banking-loki
+    user: root
     ports:
       - "3100:3100"
     volumes:
