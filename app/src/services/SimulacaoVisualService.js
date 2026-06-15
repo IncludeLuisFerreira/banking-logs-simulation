@@ -131,6 +131,7 @@ class SimulacaoVisualService {
       estrategia,
       totalContas: numContas,
       totalTransacoes: transacoes.length,
+      simId: gen,
       contas: this.getContas()
     };
   }
@@ -143,6 +144,7 @@ class SimulacaoVisualService {
       this.running = false;
       this.gerenciador = null;
       this.lockLogger.onEvent('simulacao-visual:finalizada', {
+        simId: gen,
         timestamp: Date.now(),
         source: 'visual'
       });

@@ -720,6 +720,8 @@ async function iniciarSimulacao() {
       accountStates.set(c.id, { hubLineState: 'idle', borderState: 'idle' });
     }
 
+    if (data.simId !== undefined) simAtualId = data.simId;
+    simulacaoAtiva = true;
     conectarSSE();
     iniciarTimer();
     btnParar.disabled = false;
