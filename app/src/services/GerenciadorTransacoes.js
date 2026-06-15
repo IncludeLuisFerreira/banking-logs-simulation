@@ -177,6 +177,7 @@ class GerenciadorTransacoes {
     if (!c1.ativa || !c2.ativa) return STATES.INTERRUPTED;
 
     const context = this._makeContext(t, threadId);
+    this._emitir('transacao:lendo_origem', { ...context, timestamp: Date.now() });
     context.contaId = c1.getId();
     const release1 = await c1.mutex.acquire({ ...context, timestamp: Date.now() });
 
@@ -269,6 +270,7 @@ class GerenciadorTransacoes {
     const [primeiro, segundo] = c1.getId() < c2.getId() ? [c1, c2] : [c2, c1];
 
     const context = this._makeContext(t, threadId);
+    this._emitir('transacao:lendo_origem', { ...context, timestamp: Date.now() });
     context.contaId = primeiro.getId();
     const releasePrimeiro = await primeiro.mutex.acquire({ ...context, timestamp: Date.now() });
 
@@ -310,6 +312,7 @@ class GerenciadorTransacoes {
     if (!c1.ativa || !c2.ativa) return STATES.INTERRUPTED;
 
     const context = this._makeContext(t, threadId);
+    this._emitir('transacao:lendo_origem', { ...context, timestamp: Date.now() });
     context.contaId = c1.getId();
     const lock1 = await c1.mutex.tryAcquire(500, { ...context, timestamp: Date.now() });
     if (!lock1.acquired) {

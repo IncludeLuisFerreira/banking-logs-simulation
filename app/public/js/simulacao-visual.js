@@ -765,6 +765,7 @@ async function iniciarSimulacao() {
     }
 
     if (data.simId !== undefined) simAtualId = data.simId;
+    inicioSimulacaoTimestamp = Date.now();
     simulacaoAtiva = true;
     conectarSSE();
     iniciarTimer();

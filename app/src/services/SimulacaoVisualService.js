@@ -164,6 +164,9 @@ class SimulacaoVisualService {
 
   async _aguardarConclusao(gen, gerenciador) {
     if (gerenciador) {
+      while (gerenciador.running && (gerenciador.getCount() > 0 || gerenciador.taskEmProcesso > 0)) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
       await gerenciador.encerrar();
     }
     if (gen === this._generation) {
