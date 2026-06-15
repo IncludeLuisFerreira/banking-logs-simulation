@@ -61,6 +61,23 @@ class LockLogger extends EventEmitter {
   emitEvent(type, data) {
     this.onEvent(type, data);
   }
+
+  connectMutex(mutex, context = {}) {
+    const withCtx = (type) => (ctx) => this.onEvent(type, { ...context, ...ctx });
+    mutex.on('lock:request', withCtx('lock:request'));
+    mutex.on('lock:acquired', withCtx('lock:acquired'));
+    mutex.on('lock:blocked', withCtx('lock:blocked'));
+    mutex.on('lock:timeout', withCtx('lock:timeout'));
+    mutex.on('lock:released', withCtx('lock:released'));
+  }
+
+  disconnectMutex(mutex) {
+    mutex.removeAllListeners('lock:request');
+    mutex.removeAllListeners('lock:acquired');
+    mutex.removeAllListeners('lock:blocked');
+    mutex.removeAllListeners('lock:timeout');
+    mutex.removeAllListeners('lock:released');
+  }
 }
 
 module.exports = LockLogger;

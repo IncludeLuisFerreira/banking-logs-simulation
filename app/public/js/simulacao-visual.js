@@ -25,6 +25,7 @@ const modeRadios = document.querySelectorAll('input[name="simMode"]');
 const randomControls = document.getElementById('randomControls');
 const inputTransMin = document.getElementById('inputTransMin');
 const inputTransMax = document.getElementById('inputTransMax');
+const selectEstrategia = document.getElementById('selectEstrategia');
 
 // ===== Particle System =====
 const particlesCanvas = document.getElementById('particlesCanvas');
@@ -129,7 +130,7 @@ function conectarSSE() {
 
   eventSource = new EventSource(`${API_URL}/simulacao/stream?token=${token}`);
 
-  const eventTypes = ['transacao:lendo_origem', 'transacao:conflito', 'transacao:debitado', 'transacao:success', 'simulacao-visual:iniciada', 'simulacao-visual:finalizada', 'simulacao-visual:parada'];
+  const eventTypes = ['transacao:lendo_origem', 'transacao:conflito', 'transacao:debitado', 'transacao:success', 'lock:request', 'lock:acquired', 'lock:blocked', 'lock:released', 'lock:timeout', 'simulacao-visual:iniciada', 'simulacao-visual:finalizada', 'simulacao-visual:parada'];
 
   for (const type of eventTypes) {
     eventSource.addEventListener(type, (e) => {
@@ -195,7 +196,42 @@ function processarEvento(type, data) {
   if (data.source && data.source !== 'visual') return;
   if (data.simId !== undefined && data.simId !== simAtualId) return;
 
-  if (type === 'transacao:lendo_origem') {
+  if (type === 'lock:request') {
+    const { contaId } = data;
+    if (contaId) setAccountState(contaId, 'reading');
+    atualizarTransacoesAtivas();
+  }
+
+  else if (type === 'lock:acquired') {
+    const { contaId } = data;
+    if (contaId) setAccountState(contaId, 'locked');
+    atualizarTransacoesAtivas();
+  }
+
+  else if (type === 'lock:blocked') {
+    const { contaId } = data;
+    if (contaId) setAccountState(contaId, 'blocked');
+    atualizarTransacoesAtivas();
+  }
+
+  else if (type === 'lock:timeout') {
+    const { contaId } = data;
+    if (contaId) setAccountState(contaId, 'conflito');
+    setTimeout(() => {
+      if (contaId) setAccountState(contaId, 'idle');
+      atualizarTransacoesAtivas();
+      renderizar();
+    }, 1000);
+    atualizarTransacoesAtivas();
+  }
+
+  else if (type === 'lock:released') {
+    const { contaId } = data;
+    if (contaId) setAccountState(contaId, 'idle');
+    atualizarTransacoesAtivas();
+  }
+
+  else if (type === 'transacao:lendo_origem') {
     const { origemId, destinoId } = data;
     if (origemId) setAccountState(origemId, 'reading');
     if (destinoId) setAccountState(destinoId, 'reading');
@@ -470,11 +506,11 @@ function renderizarCards() {
 
     const labels = {
       idle: 'Livre', reading: 'Lendo', locked: 'Debitando',
-      conflito: 'Conflito', success: 'Sucesso'
+      blocked: 'Bloqueado', conflito: 'Conflito', success: 'Sucesso'
     };
     const icons = {
       idle: '⚪', reading: '🔵', locked: '🟢',
-      conflito: '⚡', success: '✅'
+      blocked: '🔴', conflito: '⚡', success: '✅'
     };
 
     if (letterEl) letterEl.textContent = conta.letter;
@@ -646,6 +682,7 @@ async function iniciarSimulacao() {
   }
 
   const mode = document.querySelector('input[name="simMode"]:checked').value;
+  const estrategia = selectEstrategia.value;
   const transacaoRange = mode === 'random' ? {
     min: parseInt(inputTransMin.value) || 15,
     max: parseInt(inputTransMax.value) || 40
@@ -664,7 +701,7 @@ async function iniciarSimulacao() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ numContas, mode, transacaoRange })
+      body: JSON.stringify({ numContas, mode, transacaoRange, estrategia })
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({ erro: 'Erro ao iniciar simulação' }));

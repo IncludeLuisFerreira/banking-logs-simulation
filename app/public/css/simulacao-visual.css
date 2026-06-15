@@ -737,6 +737,19 @@ body:has(.visual-page) {
   color: #ffab40;
 }
 
+.conta-card.status-blocked {
+  border-color: #ef5350;
+  box-shadow: 0 0 16px rgba(239, 83, 80, 0.4);
+}
+.conta-card.status-blocked .conta-letter {
+  background: rgba(255, 23, 68, 0.3);
+  color: #ff8a80;
+}
+.conta-card.status-blocked .conta-status {
+  background: rgba(255, 23, 68, 0.25);
+  color: #ff8a80;
+}
+
 .conta-card.status-reading {
   border-color: #4fc3f7;
   box-shadow: 0 0 12px rgba(79, 195, 247, 0.2);
@@ -875,6 +888,7 @@ body:has(.visual-page) {
 .legend-dot.reading { background: #4fc3f7; }
 .legend-dot.locked { background: #00e676; }
 .legend-dot.conflito { background: #ff6d00; }
+.legend-dot.blocked { background: #ef5350; }
 .legend-dot.idle { background: rgba(85, 102, 119, 0.4); }
 
 /* --- Results Overlay --- */

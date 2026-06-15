@@ -5,6 +5,7 @@ const STATES = {
   SUCCESS: 'SUCCESS',
   INSUFICIENT_FUNDS: 'INSUFICIENT_FUNDS',
   CONFLICT: 'CONFLICT',
+  LOCK_FAILED: 'LOCK_FAILED',
   INTERRUPTED: 'INTERRUPTED'
 };
 
@@ -23,6 +24,8 @@ class GerenciadorTransacoes {
     this.totalTransacoes = 0;
     this.workerDelayMs = 0;
     this.source = null;
+    this.simId = null;
+    this.modo = 'otimista';
   }
 
   adicionarTransacao(t) {
@@ -62,26 +65,16 @@ class GerenciadorTransacoes {
         switch (resultado) {
           case STATES.SUCCESS:
             this.relatorio.push(task, tempoEspera);
-            if (this.lockLogger) {
-              this.lockLogger.emitEvent('transacao:success', {
-                threadId,
-                origemId: task.getOrigem().getId(),
-                destinoId: task.getDestino().getId(),
-                valorCentavos: task.getValorCentavos(),
-                timestamp: Date.now()
-              });
-            }
             break;
           case STATES.INSUFICIENT_FUNDS:
             this.relatorio.incrementaSaldoInsuficiente();
             break;
           case STATES.CONFLICT:
+          case STATES.LOCK_FAILED:
             this.relatorio.incrementaTentativasLocks();
             this.adicionarTransacao(task);
             break;
           case STATES.INTERRUPTED:
-            break;
-          default:
             break;
         }
       } catch (e) {
@@ -95,69 +88,198 @@ class GerenciadorTransacoes {
   }
 
   async executar(t, threadId = 'unknown') {
+    switch (this.modo) {
+      case 'lock-naive':
+        return this._executarLockNaive(t, threadId);
+      case 'lock-ordenado':
+        return this._executarLockOrdenado(t, threadId);
+      case 'lock-timeout':
+        return this._executarLockTimeout(t, threadId);
+      default:
+        return this._executarOtimista(t, threadId);
+    }
+  }
+
+  _emitir(type, data) {
+    if (this.lockLogger) {
+      this.lockLogger.emitEvent(type, data);
+    }
+  }
+
+  _emitirSuccess(task, threadId) {
+    this._emitir('transacao:success', {
+      threadId,
+      origemId: task.getOrigem().getId(),
+      destinoId: task.getDestino().getId(),
+      valorCentavos: task.getValorCentavos(),
+      timestamp: Date.now()
+    });
+  }
+
+  _makeContext(task, threadId) {
+    const ctx = {
+      threadId,
+      origemId: task.getOrigem().getId(),
+      destinoId: task.getDestino().getId()
+    };
+    if (this.source) ctx.source = this.source;
+    if (this.simId) ctx.simId = this.simId;
+    return ctx;
+  }
+
+  async _executarOtimista(t, threadId) {
     const c1 = t.getOrigem();
     const c2 = t.getDestino();
 
     if (!c1.ativa || !c2.ativa) return STATES.INTERRUPTED;
 
-    const context = { threadId, origemId: t.getOrigem().getId(), destinoId: t.getDestino().getId() };
-    if (this.source) context.source = this.source;
-    if (this.simId) context.simId = this.simId;
-
-    // Read current version (snapshot)
+    const context = this._makeContext(t, threadId);
     const v1 = c1.version;
 
-    // Emit: reading origin
-    if (this.lockLogger) {
-      this.lockLogger.emitEvent('transacao:lendo_origem', {
-        ...context,
-        version: v1,
-        timestamp: Date.now()
-      });
-    }
+    this._emitir('transacao:lendo_origem', { ...context, version: v1, timestamp: Date.now() });
 
-    // Wait if configured
     if (this.workerDelayMs > 0) {
       await new Promise(r => setTimeout(r, this.workerDelayMs));
     }
 
-    // Attempt atomic debit from origin with version check
     const result = c1.sacar(t.getValorCentavos(), v1);
 
     if (!result.success) {
       if (result.reason === 'conflict') {
-        if (this.lockLogger) {
-          this.lockLogger.emitEvent('transacao:conflito', {
-            ...context,
-            versionEsperada: v1,
-            versionAtual: c1.version,
-            timestamp: Date.now()
-          });
-        }
+        this._emitir('transacao:conflito', {
+          ...context, versionEsperada: v1, versionAtual: c1.version, timestamp: Date.now()
+        });
         return STATES.CONFLICT;
       }
       if (result.reason === 'insufficient_funds') return STATES.INSUFICIENT_FUNDS;
       return STATES.INTERRUPTED;
     }
 
-    // Emit: debit successful
-    if (this.lockLogger) {
-      this.lockLogger.emitEvent('transacao:debitado', {
-        ...context,
-        valorCentavos: t.getValorCentavos(),
-        newVersion: c1.version,
-        timestamp: Date.now()
-      });
-    }
+    this._emitir('transacao:debitado', { ...context, valorCentavos: t.getValorCentavos(), newVersion: c1.version, timestamp: Date.now() });
 
-    // Credit destination
     if (!c2.depositar(t.getValorCentavos())) {
-      // Rollback: restore origin
       c1.depositar(t.getValorCentavos());
       return STATES.INTERRUPTED;
     }
 
+    this._emitirSuccess(t, threadId);
     return STATES.SUCCESS;
+  }
+
+  async _executarLockNaive(t, threadId) {
+    const c1 = t.getOrigem();
+    const c2 = t.getDestino();
+    if (!c1.ativa || !c2.ativa) return STATES.INTERRUPTED;
+
+    const context = this._makeContext(t, threadId);
+    context.contaId = c1.getId();
+    const release1 = await c1.mutex.acquire({ ...context, timestamp: Date.now() });
+
+    if (this.workerDelayMs > 0) {
+      await new Promise(r => setTimeout(r, this.workerDelayMs));
+    }
+
+    context.contaId = c2.getId();
+    let release2;
+    try {
+      release2 = await c2.mutex.acquire({ ...context, timestamp: Date.now() });
+    } catch {
+      release1();
+      return STATES.INTERRUPTED;
+    }
+
+    try {
+      const r = c1.sacarSemLock(t.getValorCentavos());
+      if (!r.success) {
+        if (r.reason === 'insufficient_funds') return STATES.INSUFICIENT_FUNDS;
+        return STATES.INTERRUPTED;
+      }
+      c2.depositarSemLock(t.getValorCentavos());
+      this._emitirSuccess(t, threadId);
+      return STATES.SUCCESS;
+    } finally {
+      release2();
+      release1();
+    }
+  }
+
+  async _executarLockOrdenado(t, threadId) {
+    const c1 = t.getOrigem();
+    const c2 = t.getDestino();
+    if (!c1.ativa || !c2.ativa) return STATES.INTERRUPTED;
+
+    const [primeiro, segundo] = c1.getId() < c2.getId() ? [c1, c2] : [c2, c1];
+
+    const context = this._makeContext(t, threadId);
+    context.contaId = primeiro.getId();
+    const releasePrimeiro = await primeiro.mutex.acquire({ ...context, timestamp: Date.now() });
+
+    if (this.workerDelayMs > 0) {
+      await new Promise(r => setTimeout(r, this.workerDelayMs));
+    }
+
+    context.contaId = segundo.getId();
+    let releaseSegundo;
+    try {
+      releaseSegundo = await segundo.mutex.acquire({ ...context, timestamp: Date.now() });
+    } catch {
+      releasePrimeiro();
+      return STATES.INTERRUPTED;
+    }
+
+    try {
+      const r = c1.sacarSemLock(t.getValorCentavos());
+      if (!r.success) {
+        if (r.reason === 'insufficient_funds') return STATES.INSUFICIENT_FUNDS;
+        return STATES.INTERRUPTED;
+      }
+      c2.depositarSemLock(t.getValorCentavos());
+      this._emitirSuccess(t, threadId);
+      return STATES.SUCCESS;
+    } finally {
+      releaseSegundo();
+      releasePrimeiro();
+    }
+  }
+
+  async _executarLockTimeout(t, threadId) {
+    const c1 = t.getOrigem();
+    const c2 = t.getDestino();
+    if (!c1.ativa || !c2.ativa) return STATES.INTERRUPTED;
+
+    const context = this._makeContext(t, threadId);
+    context.contaId = c1.getId();
+    const lock1 = await c1.mutex.tryAcquire(500, { ...context, timestamp: Date.now() });
+    if (!lock1.acquired) {
+      this._emitir('transacao:conflito', { ...context, razao: 'timeout_lock1', timestamp: Date.now() });
+      return STATES.LOCK_FAILED;
+    }
+
+    if (this.workerDelayMs > 0) {
+      await new Promise(r => setTimeout(r, this.workerDelayMs));
+    }
+
+    context.contaId = c2.getId();
+    const lock2 = await c2.mutex.tryAcquire(500, { ...context, timestamp: Date.now() });
+    if (!lock2.acquired) {
+      lock1.release();
+      this._emitir('transacao:conflito', { ...context, razao: 'timeout_lock2', timestamp: Date.now() });
+      return STATES.LOCK_FAILED;
+    }
+
+    try {
+      const r = c1.sacarSemLock(t.getValorCentavos());
+      if (!r.success) {
+        if (r.reason === 'insufficient_funds') return STATES.INSUFICIENT_FUNDS;
+        return STATES.INTERRUPTED;
+      }
+      c2.depositarSemLock(t.getValorCentavos());
+      this._emitirSuccess(t, threadId);
+      return STATES.SUCCESS;
+    } finally {
+      lock2.release();
+      lock1.release();
+    }
   }
 
   async encerrar() {
@@ -178,7 +300,8 @@ class GerenciadorTransacoes {
       running: this.running,
       filaSize: this.fila.size(),
       taskEmProcesso: this.taskEmProcesso,
-      totalTransacoes: this.totalTransacoes
+      totalTransacoes: this.totalTransacoes,
+      modo: this.modo
     };
   }
 }

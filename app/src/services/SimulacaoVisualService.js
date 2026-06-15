@@ -21,13 +21,16 @@ class SimulacaoVisualService {
     }));
   }
 
-  _criarContas(numContas) {
+  _criarContas(numContas, estrategia) {
     this.contas.clear();
     for (let i = 0; i < numContas; i++) {
       const letter = String.fromCharCode(65 + i);
       const conta = new Conta(i + 1, 100000);
       this.contas.set(conta.id, { conta, letter });
       this.lockLogger.onEvent('conta:adicionada', { contaId: conta.id, saldoCentavos: conta.getSaldoCentavos() });
+      if (estrategia && estrategia.startsWith('lock')) {
+        this.lockLogger.connectMutex(conta.mutex, { contaId: conta.id, letter });
+      }
     }
   }
 
@@ -68,7 +71,7 @@ class SimulacaoVisualService {
     return transacoes;
   }
 
-  async iniciar(numContas, mode = 'nxn', transacaoRange = {}) {
+  async iniciar(numContas, mode = 'nxn', transacaoRange = {}, estrategia = 'otimista') {
     if (this.running) return { error: 'Simulação visual já em andamento' };
     if (!Number.isInteger(numContas) || numContas < 5 || numContas > 30) {
       return { error: 'Número de contas deve ser um inteiro entre 5 e 30' };
@@ -78,7 +81,7 @@ class SimulacaoVisualService {
     this._generation++;
     const gen = this._generation;
 
-    this._criarContas(numContas);
+    this._criarContas(numContas, estrategia);
 
     const numWorkers = this.NUM_WORKERS;
 
@@ -87,6 +90,7 @@ class SimulacaoVisualService {
       totalContas: numContas,
       numWorkers,
       mode,
+      estrategia,
       simId: gen,
       timestamp: Date.now(),
       source: 'visual'
@@ -107,6 +111,7 @@ class SimulacaoVisualService {
     this.gerenciador.workerDelayMs = 300;
     this.gerenciador.source = 'visual';
     this.gerenciador.simId = gen;
+    this.gerenciador.modo = estrategia;
     for (const t of transacoes) {
       this.gerenciador.adicionarTransacao(t);
     }
@@ -123,6 +128,7 @@ class SimulacaoVisualService {
     return {
       status: 'iniciada',
       mode,
+      estrategia,
       totalContas: numContas,
       totalTransacoes: transacoes.length,
       contas: this.getContas()
@@ -150,6 +156,7 @@ class SimulacaoVisualService {
     }
     for (const { conta } of this.contas.values()) {
       this.lockLogger.onEvent('conta:removida', { contaId: conta.id });
+      this.lockLogger.disconnectMutex(conta.mutex);
       conta.remover();
     }
     this.contas.clear();
