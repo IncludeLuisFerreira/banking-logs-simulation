@@ -793,17 +793,18 @@ btnLimpar.addEventListener('click', limpar);
 inputNumContas.addEventListener('keydown', (e) => { if (e.key === 'Enter') iniciarSimulacao(); });
 
 const overlay = document.getElementById('resultsOverlay');
-overlay.addEventListener('click', (e) => {
-  if (e.target === overlay) {
-    overlay.hidden = true;
-    overlay.style.display = '';
-    limpar();
-  }
-});
-document.getElementById('btnNovaSimulacao').addEventListener('click', () => {
+function fecharOverlay() {
+  if (graceTimer) { clearInterval(graceTimer); graceTimer = null; }
   overlay.hidden = true;
   overlay.style.display = '';
   limpar();
+}
+overlay.addEventListener('click', (e) => {
+  if (e.target === overlay) fecharOverlay();
+});
+document.getElementById('btnNovaSimulacao').addEventListener('click', fecharOverlay);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !overlay.hidden) fecharOverlay();
 });
 
 initParticles();
