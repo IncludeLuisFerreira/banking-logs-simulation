@@ -196,24 +196,23 @@ class GerenciadorTransacoes {
       if (ciclo) {
         const contasEnvolvidas = [...new Set(ciclo.map(c => c.contaId))];
         const transacoesEnvolvidas = [...new Set(ciclo.map(c => c.transacaoId))];
-        const transacoesHolding = [];
-        for (const [contaId, transacaoId] of this.deadlockDetector.holds.entries()) {
-          if (contasEnvolvidas.includes(contaId)) {
-            transacoesHolding.push({ transacaoId, contaId });
-          }
-        }
+        const descricao = ciclo.map(c =>
+          `T${c.transacaoId} esperando Conta ${String.fromCharCode(64 + c.contaId)}`
+        ).join('; ');
         this._emitir('simulacao:deadlock_detectado', {
           ciclo: ciclo.map(c => ({
             ...c,
             descricao: `T${c.transacaoId} esperando Conta ${String.fromCharCode(64 + c.contaId)}`
           })),
+          descricao,
           contasEnvolvidas,
           transacoesEnvolvidas,
-          transacoesHolding,
           simId: this.simId,
           timestamp: Date.now()
         });
         this.running = false;
+        c1.mutex.drainWaiters();
+        c2.mutex.drainWaiters();
         release1();
         this.deadlockDetector.releaseHold(c1.getId());
         this.deadlockDetector.releaseWait(t.id);
