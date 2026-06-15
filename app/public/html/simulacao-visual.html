@@ -24,6 +24,7 @@
       <label class="form-label">Modo:</label>
       <label class="radio-label"><input type="radio" name="simMode" value="nxn" checked> NxN</label>
       <label class="radio-label"><input type="radio" name="simMode" value="random"> Aleatório</label>
+      <label class="radio-label radio-label--danger"><input type="radio" name="simMode" value="force-deadlock"> ⚠️ Modo Caos <span class="radio-hint">(Força Deadlock)</span></label>
 
       <span class="control-separator"></span>
 
@@ -114,6 +115,21 @@
     </div>
 
     <div class="feedback" id="feedback" role="alert" aria-live="polite" hidden></div>
+
+    <div class="overlay deadlock-overlay" id="deadlockOverlay" hidden>
+      <div class="deadlock-modal">
+        <div class="deadlock-icon">🚨</div>
+        <h2 class="deadlock-title">Deadlock Identificado!</h2>
+        <p class="deadlock-subtitle">Simulação interrompida automaticamente</p>
+        <div class="deadlock-desc" id="deadlockDesc"></div>
+        <div class="deadlock-cycle" id="deadlockCycle"></div>
+        <div class="deadlock-badges" id="deadlockBadges"></div>
+        <div class="deadlock-actions">
+          <button id="btnDeadlockVerArena" class="deadlock-btn deadlock-btn--secondary">Ver Arena</button>
+          <button id="btnDeadlockVoltar" class="deadlock-btn deadlock-btn--primary">Voltar ao Controle</button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <div class="overlay" id="resultsOverlay" hidden>
