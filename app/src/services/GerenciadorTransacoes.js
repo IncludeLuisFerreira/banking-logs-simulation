@@ -1,4 +1,6 @@
 const AsyncPriorityQueue = require('../concurrency/AsyncPriorityQueue');
+const FileLogger = require('../utils/FileLogger');
+const CONTA_INVALIDA = require('../model/ContaInvalida');
 const RelatorioTransacaoConta = require('./RelatorioTransacaoConta');
 const {
   transacoesTotal,
@@ -149,6 +151,21 @@ class GerenciadorTransacoes {
     });
   }
 
+  _registrarDestinoInvalido(t, threadId) {
+    const data = {
+      origemId: t.getOrigem().getId(),
+      destinoId: t.getDestino().getId(),
+      valorCentavos: t.getValorCentavos(),
+      threadId,
+    };
+    const logger = new FileLogger();
+    logger.error('destino_invalido', data);
+    this._emitir('transacao:destino_invalido', {
+      ...data,
+      timestamp: Date.now(),
+    });
+  }
+
   _makeContext(task, threadId) {
     const ctx = {
       threadId,
@@ -166,6 +183,10 @@ class GerenciadorTransacoes {
     const c2 = t.getDestino();
 
     if (!c1.ativa || !c2.ativa) return STATES.INTERRUPTED;
+    if (c2.id === CONTA_INVALIDA.id) {
+      this._registrarDestinoInvalido(t, threadId);
+      return STATES.INTERRUPTED;
+    }
 
     const context = this._makeContext(t, threadId);
     const v1 = c1.version;
@@ -204,6 +225,10 @@ class GerenciadorTransacoes {
     const c1 = t.getOrigem();
     const c2 = t.getDestino();
     if (!c1.ativa || !c2.ativa) return STATES.INTERRUPTED;
+    if (c2.id === CONTA_INVALIDA.id) {
+      this._registrarDestinoInvalido(t, threadId);
+      return STATES.INTERRUPTED;
+    }
 
     const context = this._makeContext(t, threadId);
     this._emitir('transacao:lendo_origem', { ...context, timestamp: Date.now() });
@@ -295,6 +320,10 @@ class GerenciadorTransacoes {
     const c1 = t.getOrigem();
     const c2 = t.getDestino();
     if (!c1.ativa || !c2.ativa) return STATES.INTERRUPTED;
+    if (c2.id === CONTA_INVALIDA.id) {
+      this._registrarDestinoInvalido(t, threadId);
+      return STATES.INTERRUPTED;
+    }
 
     const [primeiro, segundo] = c1.getId() < c2.getId() ? [c1, c2] : [c2, c1];
 
@@ -339,6 +368,10 @@ class GerenciadorTransacoes {
     const c1 = t.getOrigem();
     const c2 = t.getDestino();
     if (!c1.ativa || !c2.ativa) return STATES.INTERRUPTED;
+    if (c2.id === CONTA_INVALIDA.id) {
+      this._registrarDestinoInvalido(t, threadId);
+      return STATES.INTERRUPTED;
+    }
 
     const context = this._makeContext(t, threadId);
     this._emitir('transacao:lendo_origem', { ...context, timestamp: Date.now() });
