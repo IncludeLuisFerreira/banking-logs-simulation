@@ -1,6 +1,7 @@
 const express = require('express');
 const authService = require('./src/services/AuthService');
 const { autenticar } = require('./src/middleware/auth');
+const { loginLimiter, rateLimiter } = require('./src/middleware/rateLimiter');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,10 +23,11 @@ app.post('/auth/register', (req, res) => {
   }
 });
 
-app.post('/auth/login', (req, res) => {
+app.post('/auth/login', loginLimiter, (req, res) => {
   try {
     const { username, password } = req.body;
     const resultado = authService.login(username, password);
+    rateLimiter.delete(req.ip);
     res.json({ token: resultado.token, username: resultado.usuario.username });
   } catch (erro) {
     const status = erro.status || 500;
@@ -172,7 +174,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ erro: 'Erro interno do servidor' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Banking Simulation API rodando em http://localhost:${PORT}`);
-  console.log(`Ambiente: ${process.env.NODE_ENV || 'desenvolvimento'}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Banking Simulation API rodando em http://localhost:${PORT}`);
+    console.log(`Ambiente: ${process.env.NODE_ENV || 'desenvolvimento'}`);
+  });
+}
+
+module.exports = app;
