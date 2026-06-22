@@ -7,6 +7,9 @@ services:
     volumes:
       - ./app/logs:/app/logs
       - ./app/public:/app/public
+    environment:
+      - SEED_USERNAME=teste
+      - SEED_PASSWORD=teste123
     restart: unless-stopped
 
   prometheus:

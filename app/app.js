@@ -180,6 +180,20 @@ app.use((err, req, res, next) => {
 });
 
 if (require.main === module) {
+  const SEED_USERNAME = process.env.SEED_USERNAME || 'teste';
+  const SEED_PASSWORD = process.env.SEED_PASSWORD || 'teste123';
+
+  try {
+    authService.registrar(SEED_USERNAME, SEED_PASSWORD);
+    console.log(`\u2713 Usuário de teste criado: ${SEED_USERNAME}`);
+  } catch (erro) {
+    if (erro.message === 'Username já está em uso') {
+      console.log(`\u2192 Usuário "${SEED_USERNAME}" já existe.`);
+    } else {
+      console.error(`\u2717 Erro ao criar usuário de teste: ${erro.message}`);
+    }
+  }
+
   app.listen(PORT, () => {
     console.log(`Banking Simulation API rodando em http://localhost:${PORT}`);
     console.log(`Ambiente: ${process.env.NODE_ENV || 'desenvolvimento'}`);
