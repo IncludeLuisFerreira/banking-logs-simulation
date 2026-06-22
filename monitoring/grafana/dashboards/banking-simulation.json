@@ -2,7 +2,7 @@
   "title": "Banking Simulation",
   "uid": "banking-simulation",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "timezone": "browser",
   "panels": [
     {
