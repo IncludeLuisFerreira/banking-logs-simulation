@@ -1,5 +1,6 @@
 const Conta = require('../model/Conta');
 const Transacao = require('../model/Transacao');
+const CONTA_INVALIDA = require('../model/ContaInvalida');
 const GerenciadorTransacoes = require('./GerenciadorTransacoes');
 const DeadlockDetector = require('../concurrency/DeadlockDetector');
 
@@ -44,7 +45,8 @@ class SimulacaoVisualService {
         const saldo = origem.conta.getSaldoCentavos();
         if (saldo <= 0) continue;
         const valor = Math.floor(Math.random() * Math.min(saldo, 10000)) + 1;
-        transacoes.push(new Transacao(origem.conta, destino.conta, valor));
+        const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino.conta;
+        transacoes.push(new Transacao(origem.conta, contaDestino, valor));
       }
     }
     return transacoes;
@@ -67,7 +69,8 @@ class SimulacaoVisualService {
       const saldo = origem.conta.getSaldoCentavos();
       if (saldo <= 0) continue;
       const valor = Math.floor(Math.random() * Math.min(saldo, 10000)) + 1;
-      transacoes.push(new Transacao(origem.conta, destino.conta, valor));
+      const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino.conta;
+      transacoes.push(new Transacao(origem.conta, contaDestino, valor));
     }
     return transacoes;
   }
@@ -80,7 +83,8 @@ class SimulacaoVisualService {
       const destino = contasArray[(i + 1) % numContas];
       const saldo = origem.conta.getSaldoCentavos();
       const valor = Math.floor(Math.random() * Math.min(saldo, 10000)) + 1;
-      transacoes.push(new Transacao(origem.conta, destino.conta, valor));
+      const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino.conta;
+      transacoes.push(new Transacao(origem.conta, contaDestino, valor));
     }
     return transacoes;
   }
