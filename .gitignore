@@ -145,5 +145,6 @@ vite.config.ts.timestamp-*
 # Banking simulation runtime data
 app/data/
 monitoring/grafana/data/
+*.bak
 app/relatorio.txt
 app/coverage/
