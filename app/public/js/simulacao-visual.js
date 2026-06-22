@@ -296,7 +296,7 @@ function processarEvento(type, data) {
   }
 
   else if (type === 'transacao:success') {
-    const { origemId, destinoId, valorCentavos } = data;
+    const { origemId, destinoId, valorCentavos, duracaoMs } = data;
     stats.transacoes++;
 
     const contaOrigem = contasData.find(c => c.id === origemId);
@@ -306,7 +306,7 @@ function processarEvento(type, data) {
 
     const key = `${origemId}-${destinoId}`;
     transacoesEmAndamento.delete(key);
-    transacoesConcluidas.push({ origemId, destinoId, valorCentavos });
+    transacoesConcluidas.push({ origemId, destinoId, valorCentavos, duracaoMs });
 
     setArrowState(key, 'success');
     if (origemId) setAccountState(origemId, 'success');
@@ -492,6 +492,7 @@ function renderizarPainelTransacoes() {
       const origemLetter = contaOrigem ? contaOrigem.letter : t.origemId;
       const destinoLetter = contaDestino ? contaDestino.letter : t.destinoId;
       const valor = (t.valorCentavos / 100).toFixed(2);
+      const duracao = t.duracaoMs !== undefined ? t.duracaoMs + 'ms' : '';
       html += `
         <div class="transacao-entry transacao-entry--completed">
           <span class="entry-check">✓</span>
@@ -499,6 +500,7 @@ function renderizarPainelTransacoes() {
           <span class="entry-seta">→</span>
           <span class="entry-destino">${destinoLetter}</span>
           <span class="entry-valor">R$ ${valor}</span>
+          <span class="entry-tempo">${duracao}</span>
         </div>`;
     }
     painelConcluidas.innerHTML = html;

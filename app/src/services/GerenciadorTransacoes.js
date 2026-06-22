@@ -54,6 +54,10 @@ class GerenciadorTransacoes {
 
         this.taskEmProcesso++;
 
+        if (task.inicioProcessamento === null) {
+          task.inicioProcessamento = Date.now();
+        }
+
         const saida = task.getTempoEntrada();
         const tempoEspera = Date.now() - saida;
         const tempoInicio = process.hrtime.bigint();
@@ -111,12 +115,14 @@ class GerenciadorTransacoes {
   }
 
   _emitirSuccess(task, threadId) {
+    const agora = Date.now();
     this._emitir('transacao:success', {
       threadId,
       origemId: task.getOrigem().getId(),
       destinoId: task.getDestino().getId(),
       valorCentavos: task.getValorCentavos(),
-      timestamp: Date.now()
+      timestamp: agora,
+      duracaoMs: task.inicioProcessamento !== null ? agora - task.inicioProcessamento : 0
     });
   }
 

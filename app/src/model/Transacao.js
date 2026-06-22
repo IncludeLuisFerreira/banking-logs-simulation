@@ -8,6 +8,7 @@ class Transacao {
     this.valorCentavos = valorCentavos;
     this.id = NEXT_ID++;
     this.tempoEntradaNaFila = Date.now();
+    this.inicioProcessamento = null;
   }
 
   getTempoEntrada() {
