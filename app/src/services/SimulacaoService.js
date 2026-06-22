@@ -1,5 +1,6 @@
 const Conta = require('../model/Conta');
 const Transacao = require('../model/Transacao');
+const CONTA_INVALIDA = require('../model/ContaInvalida');
 const GerenciadorTransacoes = require('./GerenciadorTransacoes');
 const LockLogger = require('./LockLogger');
 const { clientesOnline } = require('../metrics');
@@ -74,7 +75,8 @@ class SimulacaoService {
         const saldoOrigem = origem.getSaldoCentavos();
         if (saldoOrigem <= 0) continue;
         const valor = Math.floor(Math.random() * Math.min(saldoOrigem, 10000)) + 1;
-        const transacao = new Transacao(origem, destino, valor);
+        const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino;
+        const transacao = new Transacao(origem, contaDestino, valor);
         gerenciador.adicionarTransacao(transacao);
         totalTransacoes++;
       }
