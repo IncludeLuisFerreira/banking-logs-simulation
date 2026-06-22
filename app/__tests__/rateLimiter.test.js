@@ -52,16 +52,20 @@ describe('RateLimiter — loginLimiter middleware', () => {
 
   test('middleware deve retornar 429 se IP exceder limite', async () => {
     const ip = '192.168.1.200';
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
     for (let i = 0; i < 5; i++) {
       await rateLimiter.consume(ip);
     }
     const { req, res, next } = createReqRes(ip);
     await loginLimiter(req, res, next);
     expect(res.status).toHaveBeenCalledWith(429);
+    expect(res.set).toHaveBeenCalledWith('Retry-After', expect.any(String));
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ erro: expect.any(String) })
     );
+    expect(console.warn).toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
+    console.warn.mockRestore();
   });
 
   test('deve resetar contador com delete()', async () => {
