@@ -26,9 +26,11 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: banking-grafana
+    user: root
     ports:
       - "3001:3000"
     volumes:
+      - ./monitoring/grafana/data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./monitoring/grafana/dashboards:/etc/grafana/dashboards
     restart: unless-stopped

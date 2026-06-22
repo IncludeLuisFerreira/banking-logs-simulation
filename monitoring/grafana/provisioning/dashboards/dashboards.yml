@@ -1,11 +1,6 @@
 apiVersion: 1
 
-providers:
-  - name: 'Banking Simulation'
-    orgId: 1
-    folder: ''
-    type: file
-    disableDeletion: false
-    editable: true
-    options:
-      path: /etc/grafana/dashboards
+# Dashboards são importados via API (não provisionados por arquivo)
+# para permitir edição livre pelo UI do Grafana.
+# Backup: monitoring/grafana/banking-simulation.json.bak
+providers: []
