@@ -1,5 +1,16 @@
 const AsyncPriorityQueue = require('../concurrency/AsyncPriorityQueue');
 const RelatorioTransacaoConta = require('./RelatorioTransacaoConta');
+const {
+  transacoesTotal,
+  transacoesSucesso,
+  transacoesConflito,
+  transacoesSaldoInsuficiente,
+  transacoesDeadlock,
+  transacoesDuracao,
+  transacoesEsperaFila,
+  workersAtivos,
+  transacoesFila,
+} = require('../metrics');
 
 const STATES = {
   SUCCESS: 'SUCCESS',
@@ -53,6 +64,9 @@ class GerenciadorTransacoes {
         if (!this.running) break;
 
         this.taskEmProcesso++;
+        transacoesTotal.inc();
+        workersAtivos.set(this.taskEmProcesso);
+        transacoesFila.set(this.fila.size());
 
         if (task.inicioProcessamento === null) {
           task.inicioProcessamento = Date.now();
@@ -71,16 +85,21 @@ class GerenciadorTransacoes {
         switch (resultado) {
           case STATES.SUCCESS:
             this.relatorio.push(task, tempoEspera);
+            transacoesSucesso.inc();
+            transacoesEsperaFila.observe(tempoEspera);
             break;
           case STATES.INSUFICIENT_FUNDS:
             this.relatorio.incrementaSaldoInsuficiente();
+            transacoesSaldoInsuficiente.inc();
             break;
           case STATES.CONFLICT:
           case STATES.LOCK_FAILED:
             this.relatorio.incrementaTentativasLocks();
+            transacoesConflito.inc();
             this.adicionarTransacao(task);
             break;
           case STATES.DEADLOCK:
+            transacoesDeadlock.inc();
           case STATES.INTERRUPTED:
             break;
         }
@@ -89,6 +108,8 @@ class GerenciadorTransacoes {
       } finally {
         if (task !== null) {
           this.taskEmProcesso--;
+          workersAtivos.set(this.taskEmProcesso);
+          transacoesFila.set(this.fila.size());
         }
       }
     }
@@ -116,13 +137,15 @@ class GerenciadorTransacoes {
 
   _emitirSuccess(task, threadId) {
     const agora = Date.now();
+    const duracaoMs = task.inicioProcessamento !== null ? agora - task.inicioProcessamento : 0;
+    transacoesDuracao.observe(duracaoMs);
     this._emitir('transacao:success', {
       threadId,
       origemId: task.getOrigem().getId(),
       destinoId: task.getDestino().getId(),
       valorCentavos: task.getValorCentavos(),
       timestamp: agora,
-      duracaoMs: task.inicioProcessamento !== null ? agora - task.inicioProcessamento : 0
+      duracaoMs
     });
   }
 

@@ -1,4 +1,5 @@
 const { RateLimiterMemory } = require('rate-limiter-flexible');
+const { rateLimiterBloqueios } = require('../metrics');
 
 const rateLimiter = new RateLimiterMemory({
   points: 5,
@@ -13,6 +14,7 @@ async function loginLimiter(req, res, next) {
   } catch (rateLimiterRes) {
     const secs = Math.round(rateLimiterRes.msBeforeNext / 1000) || 1;
     res.set('Retry-After', String(secs));
+    rateLimiterBloqueios.inc();
     console.warn(`[RATE_LIMITER] IP bloqueado: ${req.ip} por ${secs}s`);
     return res.status(429).json({
       erro: 'Muitas tentativas de login. IP bloqueado temporariamente.',

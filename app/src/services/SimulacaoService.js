@@ -2,6 +2,7 @@ const Conta = require('../model/Conta');
 const Transacao = require('../model/Transacao');
 const GerenciadorTransacoes = require('./GerenciadorTransacoes');
 const LockLogger = require('./LockLogger');
+const { clientesOnline } = require('../metrics');
 
 class SimulacaoService {
   constructor() {
@@ -15,6 +16,7 @@ class SimulacaoService {
   adicionarConta(saldoInicialCentavos = 100000, nome = '') {
     const conta = new Conta(this.nextId++, saldoInicialCentavos);
     this.contas.set(conta.id, { conta, nome });
+    clientesOnline.set(this.contas.size);
     this.lockLogger.onEvent('conta:adicionada', {
       contaId: conta.id,
       nome,
@@ -29,6 +31,7 @@ class SimulacaoService {
     const { conta, nome } = entry;
     conta.remover();
     this.contas.delete(id);
+    clientesOnline.set(this.contas.size);
     this.lockLogger.onEvent('conta:removida', { contaId: id, nome });
     return true;
   }

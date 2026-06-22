@@ -2,6 +2,7 @@ const express = require('express');
 const authService = require('./src/services/AuthService');
 const { autenticar } = require('./src/middleware/auth');
 const { loginLimiter, rateLimiter } = require('./src/middleware/rateLimiter');
+const { metricsHandler, loginTentativas } = require('./src/metrics');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,6 +10,9 @@ const path = require('path')
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// --- Métricas Prometheus ---
+app.get('/metrics', metricsHandler);
 
 // --- Rotas de Autenticação ---
 
@@ -25,6 +29,7 @@ app.post('/auth/register', (req, res) => {
 
 app.post('/auth/login', loginLimiter, (req, res) => {
   try {
+    loginTentativas.inc();
     const { username, password } = req.body;
     const resultado = authService.login(username, password);
     res.json({ token: resultado.token, username: resultado.usuario.username });
