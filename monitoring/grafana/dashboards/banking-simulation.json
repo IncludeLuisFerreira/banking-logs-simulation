@@ -1,0 +1,256 @@
+{
+  "title": "Banking Simulation",
+  "uid": "banking-simulation",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Total Transactions",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 3, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(transacoes_total[$__rate_interval]))",
+          "legendFormat": "transacoes/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "fixed" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "blue" }] }
+        }
+      }
+    },
+    {
+      "title": "Success Rate",
+      "type": "stat",
+      "gridPos": { "x": 3, "y": 0, "w": 3, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(transacoes_sucesso_total[$__rate_interval])) / sum(rate(transacoes_total[$__rate_interval])) * 100",
+          "legendFormat": "sucesso %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "red" },
+              { "value": 80, "color": "orange" },
+              { "value": 95, "color": "green" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Online Clients",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 0, "w": 3, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "clientes_online",
+          "legendFormat": "clientes"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "fixed" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "purple" }] }
+        }
+      }
+    },
+    {
+      "title": "Active Workers",
+      "type": "stat",
+      "gridPos": { "x": 9, "y": 0, "w": 3, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "workers_ativos",
+          "legendFormat": "workers"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" },
+              { "value": 50, "color": "orange" },
+              { "value": 80, "color": "red" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Transaction Duration (P95)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 4, "w": 6, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(transacoes_duracao_ms_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "P95"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(transacoes_duracao_ms_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "P50"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "title": "Queue Wait Time (P95)",
+      "type": "timeseries",
+      "gridPos": { "x": 6, "y": 4, "w": 6, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(transacoes_espera_fila_ms_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "P95"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(transacoes_espera_fila_ms_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "P50"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "title": "Transactions by Result",
+      "type": "bargauge",
+      "gridPos": { "x": 0, "y": 12, "w": 6, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(transacoes_sucesso_total[$__rate_interval]))",
+          "legendFormat": "Success"
+        },
+        {
+          "expr": "sum(rate(transacoes_conflito_total[$__rate_interval]))",
+          "legendFormat": "Conflict"
+        },
+        {
+          "expr": "sum(rate(transacoes_saldo_insuficiente_total[$__rate_interval]))",
+          "legendFormat": "Insufficient Funds"
+        },
+        {
+          "expr": "sum(rate(transacoes_deadlock_total[$__rate_interval]))",
+          "legendFormat": "Deadlock"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" }
+        }
+      }
+    },
+    {
+      "title": "Workers & Queue",
+      "type": "timeseries",
+      "gridPos": { "x": 6, "y": 12, "w": 6, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "workers_ativos",
+          "legendFormat": "Active Workers"
+        },
+        {
+          "expr": "transacoes_fila",
+          "legendFormat": "Queue Size"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Login Attempts & Blocks",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 20, "w": 6, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(login_tentativas_total[$__rate_interval]))",
+          "legendFormat": "Login Attempts/s"
+        },
+        {
+          "expr": "sum(rate(rate_limiter_bloqueios_total[$__rate_interval]))",
+          "legendFormat": "Blocks/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Total Login Attempts",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 20, "w": 3, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(login_tentativas_total)",
+          "legendFormat": "total"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Total Blocks",
+      "type": "stat",
+      "gridPos": { "x": 9, "y": 20, "w": 3, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate_limiter_bloqueios_total)",
+          "legendFormat": "total"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" },
+              { "value": 1, "color": "orange" },
+              { "value": 10, "color": "red" }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

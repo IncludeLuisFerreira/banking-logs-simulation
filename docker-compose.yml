@@ -26,7 +26,8 @@ services:
     ports:
       - "3001:3000"
     volumes:
-      - ./monitoring/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards
     restart: unless-stopped
 
   loki:
