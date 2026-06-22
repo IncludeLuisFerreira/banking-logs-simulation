@@ -27,8 +27,8 @@ app.post('/auth/login', loginLimiter, (req, res) => {
   try {
     const { username, password } = req.body;
     const resultado = authService.login(username, password);
-    rateLimiter.delete(req.ip);
     res.json({ token: resultado.token, username: resultado.usuario.username });
+    rateLimiter.delete(req.ip).catch(() => {});
   } catch (erro) {
     const status = erro.status || 500;
     res.status(status).json({ erro: erro.message });
