@@ -2,7 +2,7 @@ const express = require('express');
 const authService = require('./src/services/AuthService');
 const { autenticar } = require('./src/middleware/auth');
 const { loginLimiter, rateLimiter } = require('./src/middleware/rateLimiter');
-const { metricsHandler, loginTentativas } = require('./src/metrics');
+const { metricsHandler, loginTentativas, tentativasForcaBruta } = require('./src/metrics');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,6 +36,7 @@ app.post('/auth/login', loginLimiter, (req, res) => {
     rateLimiter.delete(req.ip).catch(() => {});
   } catch (erro) {
     const status = erro.status || 500;
+    if (status === 401) tentativasForcaBruta.inc();
     res.status(status).json({ erro: erro.message });
   }
 });

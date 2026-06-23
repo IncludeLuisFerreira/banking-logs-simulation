@@ -64,6 +64,21 @@ const loginTentativas = new promClient.Counter({
   help: 'Total de tentativas de login',
 });
 
+const tentativasForcaBruta = new promClient.Counter({
+  name: 'tentativas_forca_bruta_total',
+  help: 'Tentativas de login com credenciais inválidas (força bruta)',
+});
+
+const transacoesChequeEspecial = new promClient.Counter({
+  name: 'transacoes_cheque_especial_total',
+  help: 'Soma do cheque especial usado nas transações',
+});
+
+const transacoesDestinoInvalido = new promClient.Counter({
+  name: 'transacoes_destino_invalido_total',
+  help: 'Transações com destino não existente (-1)',
+});
+
 async function metricsHandler(req, res) {
   res.set('Content-Type', promClient.register.contentType);
   res.end(await promClient.register.metrics());
@@ -82,6 +97,9 @@ module.exports = {
   clientesOnline,
   rateLimiterBloqueios,
   loginTentativas,
+  tentativasForcaBruta,
+  transacoesChequeEspecial,
+  transacoesDestinoInvalido,
   metricsHandler,
   promClient,
 };

@@ -12,6 +12,8 @@ const {
   transacoesEsperaFila,
   workersAtivos,
   transacoesFila,
+  transacoesChequeEspecial,
+  transacoesDestinoInvalido,
 } = require('../metrics');
 
 const STATES = {
@@ -152,6 +154,7 @@ class GerenciadorTransacoes {
   }
 
   _registrarDestinoInvalido(t, threadId) {
+    transacoesDestinoInvalido.inc();
     const data = {
       origemId: t.getOrigem().getId(),
       destinoId: t.getDestino().getId(),
@@ -184,6 +187,7 @@ class GerenciadorTransacoes {
   }
 
   _emitirChequeEspecial(t, threadId, chequeEspecialUsado) {
+    transacoesChequeEspecial.inc(chequeEspecialUsado);
     const data = {
       origemId: t.getOrigem().getId(),
       destinoId: t.getDestino().getId(),
