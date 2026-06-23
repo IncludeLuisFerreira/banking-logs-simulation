@@ -202,8 +202,7 @@ O sistema segue uma arquitetura em camadas inspirada nos princípios de **Clean 
 │   │   │   └── simulacao-visual.css # Estilos da simulação visual (1006 linhas)
 │   │   ├── html/
 │   │   │   ├── register.html       # Página de cadastro
-│   │   │   ├── dashboard.html      # Dashboard com gestão de contas e logs
-│   │   │   └── simulacao-visual.html # Arena visual gamificada
+│   │   │   └── simulacao-visual.html # Arena visual gamificada (página principal pós-login)
 │   │   ├── img/                    # Logos e imagens (5 variações da logo Tundra)
 │   │   └── js/
 │   │       ├── api.js              # Constante API_BASE_URL

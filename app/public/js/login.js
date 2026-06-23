@@ -117,9 +117,9 @@ async function autenticar(credenciais) {
 
       exibirFeedback('Login realizado com sucesso! Redirecionando...', 'success');
 
-      // Redireciona para dashboard
+      // Redireciona para simulação visual
       setTimeout(() => {
-        window.location.href = '/html/dashboard.html';
+        window.location.href = '/html/simulacao-visual.html';
       }, 800);
 
     } else if (resposta.status === 401) {
