@@ -84,7 +84,19 @@ function resizeParticles() {
   particlesCanvas.height = window.innerHeight;
 }
 
-window.addEventListener('resize', resizeParticles);
+let resizeDebounce = null;
+function onResize() {
+  resizeParticles();
+  clearTimeout(resizeDebounce);
+  resizeDebounce = setTimeout(() => {
+    if (contasData.length === 0) return;
+    renderizarContas(contasData);
+    renderizarHubLines();
+    renderizarArrows();
+  }, 150);
+}
+
+window.addEventListener('resize', onResize);
 
 const API_URL = API_BASE_URL;
 
@@ -568,7 +580,8 @@ function renderizarHubLines() {
   svgLines.querySelectorAll('.hub-line').forEach(el => el.remove());
 
   const rect = visualArena.getBoundingClientRect();
-  const centerX = rect.width / 2;
+  const panelOffset = parseFloat(getComputedStyle(visualArena).getPropertyValue('--panel-offset')) || 0;
+  const centerX = rect.width / 2 + panelOffset;
   const centerY = rect.height / 2;
 
   for (const conta of contasData) {
@@ -729,9 +742,10 @@ function animarNumeros(elementId, start, end, duration) {
 // ===== Account Positioning =====
 function renderizarContas(contas) {
   const rect = visualArena.getBoundingClientRect();
-  const centerX = rect.width / 2;
+  const panelOffset = parseFloat(getComputedStyle(visualArena).getPropertyValue('--panel-offset')) || 0;
+  const centerX = rect.width / 2 + panelOffset;
   const centerY = rect.height / 2;
-  const maxRadius = Math.min(centerX, centerY) - 60;
+  const maxRadius = Math.min(centerX, centerY, rect.width - centerX) - 60;
   const num = contas.length;
   const arcPerAccount = num > 0 ? (2 * Math.PI * maxRadius) / num : 0;
   const idealCardWidth = Math.min(120, Math.max(50, Math.floor(arcPerAccount * 0.75)));
@@ -765,11 +779,6 @@ function renderizarContas(contas) {
     visualAccounts.appendChild(card);
   });
 
-  const bankHub = document.getElementById('visualCenter');
-  if (bankHub) {
-    bankHub.style.left = centerX + 'px';
-    bankHub.style.top = centerY + 'px';
-  }
 }
 
 // ===== Simulation Lifecycle =====
