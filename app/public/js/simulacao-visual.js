@@ -147,7 +147,7 @@ function conectarSSE() {
 
   eventSource = new EventSource(`${API_URL}/simulacao/stream?token=${token}`);
 
-  const eventTypes = ['transacao:lendo_origem', 'transacao:conflito', 'transacao:debitado', 'transacao:success', 'lock:request', 'lock:acquired', 'lock:blocked', 'lock:released', 'lock:timeout', 'simulacao-visual:iniciada', 'simulacao-visual:finalizada', 'simulacao-visual:parada', 'simulacao:deadlock_detectado'];
+  const eventTypes = ['transacao:lendo_origem', 'transacao:conflito', 'transacao:debitado', 'transacao:success', 'transacao:destino_invalido', 'transacao:saldo_insuficiente', 'transacao:cheque_especial', 'lock:request', 'lock:acquired', 'lock:blocked', 'lock:released', 'lock:timeout', 'simulacao-visual:iniciada', 'simulacao-visual:finalizada', 'simulacao-visual:parada', 'simulacao:deadlock_detectado'];
 
   for (const type of eventTypes) {
     eventSource.addEventListener(type, (e) => {
@@ -208,6 +208,7 @@ let inicioSimulacaoTimestamp = null;
 let graceTimer = null;
 let simulacaoAtiva = false;
 let simAtualId = null;
+let transacoesChequeEspecial = new Set();
 
 function processarEvento(type, data) {
   if (data.source && data.source !== 'visual') return;
@@ -305,20 +306,58 @@ function processarEvento(type, data) {
     if (contaDestino) contaDestino.saldoCentavos += valorCentavos;
 
     const key = `${origemId}-${destinoId}`;
+    const usouChequeEspecial = transacoesChequeEspecial.has(key);
+    transacoesChequeEspecial.delete(key);
     transacoesEmAndamento.delete(key);
-    transacoesConcluidas.push({ origemId, destinoId, valorCentavos, duracaoMs });
+    transacoesConcluidas.push({ origemId, destinoId, valorCentavos, duracaoMs, chequeEspecial: usouChequeEspecial });
 
     setArrowState(key, 'success');
-    if (origemId) setAccountState(origemId, 'success');
+    if (origemId && !usouChequeEspecial) setAccountState(origemId, 'success');
     if (destinoId) setAccountState(destinoId, 'success');
 
     setTimeout(() => {
       removeArrow(key);
-      if (origemId) setAccountState(origemId, 'idle');
+      if (origemId && !usouChequeEspecial) setAccountState(origemId, 'idle');
       if (destinoId) setAccountState(destinoId, 'idle');
       atualizarTransacoesAtivas();
       renderizar();
     }, 1500);
+  }
+
+  else if (type === 'transacao:destino_invalido') {
+    const { origemId, destinoId, valorCentavos } = data;
+    if (origemId) setAccountState(origemId, 'destino_invalido');
+    const key = `${origemId}-${destinoId}`;
+    transacoesEmAndamento.delete(key);
+    transacoesConcluidas.push({ origemId, destinoId, valorCentavos, duracaoMs: 0, invalido: true });
+
+    setTimeout(() => {
+      if (origemId) setAccountState(origemId, 'idle');
+      renderizar();
+    }, 2000);
+  }
+
+  else if (type === 'transacao:saldo_insuficiente') {
+    const { origemId, destinoId, valorCentavos } = data;
+    if (origemId) setAccountState(origemId, 'saldo_insuficiente');
+    const key = `${origemId}-${destinoId}`;
+    transacoesEmAndamento.delete(key);
+    transacoesConcluidas.push({ origemId, destinoId, valorCentavos, duracaoMs: 0, saldoInsuficiente: true });
+
+    setTimeout(() => {
+      if (origemId) setAccountState(origemId, 'idle');
+      renderizar();
+    }, 2000);
+  }
+
+  else if (type === 'transacao:cheque_especial') {
+    const { origemId, destinoId } = data;
+    if (origemId) setAccountState(origemId, 'cheque_especial');
+    transacoesChequeEspecial.add(`${origemId}-${destinoId}`);
+    setTimeout(() => {
+      if (origemId) setAccountState(origemId, 'idle');
+      renderizar();
+    }, 2000);
   }
 
   else if (type === 'simulacao-visual:iniciada') {
@@ -333,6 +372,7 @@ function processarEvento(type, data) {
     activeArrows.clear();
     transacoesEmAndamento.clear();
     transacoesConcluidas = [];
+    transacoesChequeEspecial.clear();
     resultadosSimulacao = null;
     inicioSimulacaoTimestamp = Date.now();
     stats = { transacoes: 0, locksAtivos: 0, contecoes: 0 };
@@ -490,12 +530,20 @@ function renderizarPainelTransacoes() {
       const contaOrigem = contasData.find(c => c.id === t.origemId);
       const contaDestino = contasData.find(c => c.id === t.destinoId);
       const origemLetter = contaOrigem ? contaOrigem.letter : t.origemId;
-      const destinoLetter = contaDestino ? contaDestino.letter : t.destinoId;
+      const destinoLetter = contaDestino ? contaDestino.letter : '?';
       const valor = (t.valorCentavos / 100).toFixed(2);
       const duracao = t.duracaoMs !== undefined ? t.duracaoMs + 'ms' : '';
+      const entryClass = t.invalido ? 'transacao-entry--invalid'
+        : t.saldoInsuficiente ? 'transacao-entry--saldo-insuficiente'
+        : t.chequeEspecial ? 'transacao-entry--cheque-especial'
+        : 'transacao-entry--completed';
+      const entryIcon = t.invalido ? '⚠'
+        : t.saldoInsuficiente ? '✕'
+        : t.chequeEspecial ? '◆'
+        : '✓';
       html += `
-        <div class="transacao-entry transacao-entry--completed">
-          <span class="entry-check">✓</span>
+        <div class="transacao-entry ${entryClass}">
+          <span class="entry-check">${entryIcon}</span>
           <span class="entry-origem">${origemLetter}</span>
           <span class="entry-seta">→</span>
           <span class="entry-destino">${destinoLetter}</span>
@@ -552,11 +600,15 @@ function renderizarCards() {
 
     const labels = {
       idle: 'Livre', reading: 'Lendo', locked: 'Debitando',
-      blocked: 'Bloqueado', conflito: 'Conflito', success: 'Sucesso'
+      blocked: 'Bloqueado', conflito: 'Conflito', success: 'Sucesso',
+      destino_invalido: 'Dest. Inválido', saldo_insuficiente: 'Saldo Insuf.',
+      cheque_especial: 'Cheque Especial'
     };
     const icons = {
       idle: '⚪', reading: '🔵', locked: '🟢',
-      blocked: '🔴', conflito: '⚡', success: '✅'
+      blocked: '🔴', conflito: '⚡', success: '✅',
+      destino_invalido: '⚠️', saldo_insuficiente: '💸',
+      cheque_especial: '🟦'
     };
 
     if (letterEl) letterEl.textContent = conta.letter;
@@ -705,6 +757,7 @@ function renderizarContas(contas) {
     }
     card.innerHTML = `
       <div class="conta-letter" style="${idealCardWidth < 90 ? `width:${idealCardWidth * 0.28}px;height:${idealCardWidth * 0.28}px;font-size:${Math.max(9, idealCardWidth * 0.13)}px` : ''}">${conta.letter}</div>
+      ${conta.temChequeEspecial ? '<div class="conta-ce-badge">CE</div>' : ''}
       <div class="conta-saldo">R$ ${(conta.saldoCentavos / 100).toFixed(2)}</div>
       <div class="conta-bar"><div class="conta-bar-fill" style="width:100%"></div></div>
       <div class="conta-status">⚪ Livre</div>
@@ -807,6 +860,7 @@ function limpar() {
   stats = { transacoes: 0, locksAtivos: 0, contecoes: 0 };
   transacoesEmAndamento.clear();
   transacoesConcluidas = [];
+  transacoesChequeEspecial.clear();
   resultadosSimulacao = null;
   inicioSimulacaoTimestamp = null;
   visualAccounts.innerHTML = '';

@@ -160,10 +160,41 @@ class GerenciadorTransacoes {
     };
     const logger = new FileLogger();
     logger.error('destino_invalido', data);
-    this._emitir('transacao:destino_invalido', {
+    const eventData = {
       ...data,
       timestamp: Date.now(),
-    });
+    };
+    if (this.source) eventData.source = this.source;
+    if (this.simId) eventData.simId = this.simId;
+    this._emitir('transacao:destino_invalido', eventData);
+  }
+
+  _emitirSaldoInsuficiente(t, threadId) {
+    const data = {
+      origemId: t.getOrigem().getId(),
+      destinoId: t.getDestino().getId(),
+      valorCentavos: t.getValorCentavos(),
+      saldoDisponivel: t.getOrigem().getSaldoCentavos(),
+      threadId,
+      timestamp: Date.now(),
+    };
+    if (this.source) data.source = this.source;
+    if (this.simId) data.simId = this.simId;
+    this._emitir('transacao:saldo_insuficiente', data);
+  }
+
+  _emitirChequeEspecial(t, threadId, chequeEspecialUsado) {
+    const data = {
+      origemId: t.getOrigem().getId(),
+      destinoId: t.getDestino().getId(),
+      valorCentavos: t.getValorCentavos(),
+      chequeEspecialUsado,
+      threadId,
+      timestamp: Date.now(),
+    };
+    if (this.source) data.source = this.source;
+    if (this.simId) data.simId = this.simId;
+    this._emitir('transacao:cheque_especial', data);
   }
 
   _makeContext(task, threadId) {
@@ -206,8 +237,28 @@ class GerenciadorTransacoes {
         });
         return STATES.CONFLICT;
       }
-      if (result.reason === 'insufficient_funds') return STATES.INSUFICIENT_FUNDS;
-      return STATES.INTERRUPTED;
+      if (result.reason === 'insufficient_funds') {
+        if (c1.temChequeEspecial()) {
+          const ceResult = c1.sacarComChequeEspecialVersao(t.getValorCentavos(), v1);
+          if (ceResult.success) {
+            this._emitirChequeEspecial(t, threadId, ceResult.chequeEspecialUsado);
+          } else {
+            if (ceResult.reason === 'conflict') {
+              this._emitir('transacao:conflito', {
+                ...context, versionEsperada: v1, versionAtual: c1.version, timestamp: Date.now()
+              });
+              return STATES.CONFLICT;
+            }
+            this._emitirSaldoInsuficiente(t, threadId);
+            return STATES.INSUFICIENT_FUNDS;
+          }
+        } else {
+          this._emitirSaldoInsuficiente(t, threadId);
+          return STATES.INSUFICIENT_FUNDS;
+        }
+      } else {
+        return STATES.INTERRUPTED;
+      }
     }
 
     this._emitir('transacao:debitado', { ...context, valorCentavos: t.getValorCentavos(), newVersion: c1.version, timestamp: Date.now() });
@@ -296,8 +347,22 @@ class GerenciadorTransacoes {
     try {
       const r = c1.sacarSemLock(t.getValorCentavos());
       if (!r.success) {
-        if (r.reason === 'insufficient_funds') { resultado = STATES.INSUFICIENT_FUNDS; return resultado; }
-        resultado = STATES.INTERRUPTED; return resultado;
+        if (r.reason === 'insufficient_funds') {
+          if (c1.temChequeEspecial()) {
+            const ceResult = c1.sacarSemLockComChequeEspecial(t.getValorCentavos());
+            if (ceResult.success) {
+              this._emitirChequeEspecial(t, threadId, ceResult.chequeEspecialUsado);
+            } else {
+              this._emitirSaldoInsuficiente(t, threadId);
+              resultado = STATES.INSUFICIENT_FUNDS; return resultado;
+            }
+          } else {
+            this._emitirSaldoInsuficiente(t, threadId);
+            resultado = STATES.INSUFICIENT_FUNDS; return resultado;
+          }
+        } else {
+          resultado = STATES.INTERRUPTED; return resultado;
+        }
       }
       if (!c2.depositarSemLock(t.getValorCentavos())) {
         c1.depositarSemLock(t.getValorCentavos());
@@ -349,8 +414,22 @@ class GerenciadorTransacoes {
     try {
       const r = c1.sacarSemLock(t.getValorCentavos());
       if (!r.success) {
-        if (r.reason === 'insufficient_funds') { resultado = STATES.INSUFICIENT_FUNDS; return resultado; }
-        resultado = STATES.INTERRUPTED; return resultado;
+        if (r.reason === 'insufficient_funds') {
+          if (c1.temChequeEspecial()) {
+            const ceResult = c1.sacarSemLockComChequeEspecial(t.getValorCentavos());
+            if (ceResult.success) {
+              this._emitirChequeEspecial(t, threadId, ceResult.chequeEspecialUsado);
+            } else {
+              this._emitirSaldoInsuficiente(t, threadId);
+              resultado = STATES.INSUFICIENT_FUNDS; return resultado;
+            }
+          } else {
+            this._emitirSaldoInsuficiente(t, threadId);
+            resultado = STATES.INSUFICIENT_FUNDS; return resultado;
+          }
+        } else {
+          resultado = STATES.INTERRUPTED; return resultado;
+        }
       }
       if (!c2.depositarSemLock(t.getValorCentavos())) {
         c1.depositarSemLock(t.getValorCentavos());
@@ -398,8 +477,22 @@ class GerenciadorTransacoes {
     try {
       const r = c1.sacarSemLock(t.getValorCentavos());
       if (!r.success) {
-        if (r.reason === 'insufficient_funds') { resultado = STATES.INSUFICIENT_FUNDS; return resultado; }
-        resultado = STATES.INTERRUPTED; return resultado;
+        if (r.reason === 'insufficient_funds') {
+          if (c1.temChequeEspecial()) {
+            const ceResult = c1.sacarSemLockComChequeEspecial(t.getValorCentavos());
+            if (ceResult.success) {
+              this._emitirChequeEspecial(t, threadId, ceResult.chequeEspecialUsado);
+            } else {
+              this._emitirSaldoInsuficiente(t, threadId);
+              resultado = STATES.INSUFICIENT_FUNDS; return resultado;
+            }
+          } else {
+            this._emitirSaldoInsuficiente(t, threadId);
+            resultado = STATES.INSUFICIENT_FUNDS; return resultado;
+          }
+        } else {
+          resultado = STATES.INTERRUPTED; return resultado;
+        }
       }
       if (!c2.depositarSemLock(t.getValorCentavos())) {
         c1.depositarSemLock(t.getValorCentavos());

@@ -19,15 +19,26 @@ class SimulacaoVisualService {
       id: c.conta.id,
       letter: c.letter,
       saldoCentavos: c.conta.getSaldoCentavos(),
-      ativa: c.conta.ativa
+      ativa: c.conta.ativa,
+      temChequeEspecial: c.conta.temChequeEspecial()
     }));
   }
 
   _criarContas(numContas, estrategia) {
     this.contas.clear();
+    const MAX_CONTAS_CHEQUE_ESPECIAL = 5;
+    const CHEQUE_ESPECIAL_POR_CONTA = 100000;
+    const PROB_CHEQUE_ESPECIAL = 0.3;
+    let contasComChequeEspecial = 0;
+
     for (let i = 0; i < numContas; i++) {
       const letter = String.fromCharCode(65 + i);
-      const conta = new Conta(i + 1, 100000);
+      let chequeEspecialLimite = 0;
+      if (contasComChequeEspecial < MAX_CONTAS_CHEQUE_ESPECIAL && Math.random() < PROB_CHEQUE_ESPECIAL) {
+        chequeEspecialLimite = CHEQUE_ESPECIAL_POR_CONTA;
+        contasComChequeEspecial++;
+      }
+      const conta = new Conta(i + 1, 100000, chequeEspecialLimite);
       this.contas.set(conta.id, { conta, letter });
       this.lockLogger.onEvent('conta:adicionada', { contaId: conta.id, saldoCentavos: conta.getSaldoCentavos() });
       if (estrategia && estrategia.startsWith('lock')) {
@@ -44,7 +55,7 @@ class SimulacaoVisualService {
         if (origem.conta.id === destino.conta.id) continue;
         const saldo = origem.conta.getSaldoCentavos();
         if (saldo <= 0) continue;
-        const valor = Math.floor(Math.random() * Math.min(saldo, 10000)) + 1;
+        const valor = Math.floor(Math.random() * 90001) + 10000;
         const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino.conta;
         transacoes.push(new Transacao(origem.conta, contaDestino, valor));
       }
@@ -68,7 +79,7 @@ class SimulacaoVisualService {
       const destino = contasArray[idxDestino];
       const saldo = origem.conta.getSaldoCentavos();
       if (saldo <= 0) continue;
-      const valor = Math.floor(Math.random() * Math.min(saldo, 10000)) + 1;
+      const valor = Math.floor(Math.random() * 90001) + 10000;
       const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino.conta;
       transacoes.push(new Transacao(origem.conta, contaDestino, valor));
     }
@@ -82,7 +93,7 @@ class SimulacaoVisualService {
       const origem = contasArray[i];
       const destino = contasArray[(i + 1) % numContas];
       const saldo = origem.conta.getSaldoCentavos();
-      const valor = Math.floor(Math.random() * Math.min(saldo, 10000)) + 1;
+      const valor = Math.floor(Math.random() * 90001) + 10000;
       const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino.conta;
       transacoes.push(new Transacao(origem.conta, contaDestino, valor));
     }

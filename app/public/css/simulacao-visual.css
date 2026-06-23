@@ -428,6 +428,49 @@ body:has(.visual-page) {
   color: #00e676;
 }
 
+.transacao-entry--invalid {
+  color: #ea80fc;
+  background: rgba(224, 64, 251, 0.06);
+}
+.transacao-entry--invalid .entry-check {
+  color: #e040fb;
+}
+.transacao-entry--invalid .entry-origem {
+  color: #ea80fc;
+}
+.transacao-entry--invalid .entry-destino {
+  color: #e040fb;
+  text-decoration: line-through;
+}
+
+.transacao-entry--saldo-insuficiente {
+  color: #ffd740;
+  background: rgba(255, 171, 0, 0.06);
+}
+.transacao-entry--saldo-insuficiente .entry-check {
+  color: #ffab00;
+}
+.transacao-entry--saldo-insuficiente .entry-origem {
+  color: #ffd740;
+}
+.transacao-entry--saldo-insuficiente .entry-destino {
+  color: #ffab00;
+}
+
+.transacao-entry--cheque-especial {
+  color: #64ffda;
+  background: rgba(29, 233, 182, 0.06);
+}
+.transacao-entry--cheque-especial .entry-check {
+  color: #1de9b6;
+}
+.transacao-entry--cheque-especial .entry-origem {
+  color: #64ffda;
+}
+.transacao-entry--cheque-especial .entry-destino {
+  color: #1de9b6;
+}
+
 .transacao-entry .entry-spinner {
   display: inline-block;
   width: 10px;
@@ -770,6 +813,64 @@ body:has(.visual-page) {
   color: #4fc3f7;
 }
 
+/* --- Destino Inválido State --- */
+.conta-card.status-destino_invalido {
+  border-color: #e040fb;
+  box-shadow: 0 0 20px rgba(224, 64, 251, 0.5);
+  animation: pulse-destino-invalido 0.6s ease-in-out 3;
+}
+.conta-card.status-destino_invalido .conta-letter {
+  background: rgba(224, 64, 251, 0.25);
+  color: #ea80fc;
+}
+.conta-card.status-destino_invalido .conta-status {
+  background: rgba(224, 64, 251, 0.2);
+  color: #ea80fc;
+}
+
+/* --- Saldo Insuficiente State --- */
+.conta-card.status-saldo_insuficiente {
+  border-color: #ffab00;
+  box-shadow: 0 0 20px rgba(255, 171, 0, 0.5);
+  animation: pulse-saldo-insuficiente 0.6s ease-in-out 3;
+}
+.conta-card.status-saldo_insuficiente .conta-letter {
+  background: rgba(255, 171, 0, 0.25);
+  color: #ffd740;
+}
+.conta-card.status-saldo_insuficiente .conta-status {
+  background: rgba(255, 171, 0, 0.2);
+  color: #ffd740;
+}
+
+/* --- Cheque Especial State --- */
+.conta-card.status-cheque_especial {
+  border-color: #1de9b6;
+  box-shadow: 0 0 20px rgba(29, 233, 182, 0.5);
+}
+.conta-card.status-cheque_especial .conta-letter {
+  background: rgba(29, 233, 182, 0.25);
+  color: #64ffda;
+}
+.conta-card.status-cheque_especial .conta-status {
+  background: rgba(29, 233, 182, 0.2);
+  color: #64ffda;
+}
+
+/* --- CE Badge --- */
+.conta-ce-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(29, 233, 182, 0.2);
+  color: #1de9b6;
+  font-size: 9px;
+  font-weight: bold;
+  padding: 1px 4px;
+  border-radius: 4px;
+  border: 1px solid rgba(29, 233, 182, 0.4);
+}
+
 @keyframes pulse-success {
   0% { box-shadow: 0 0 0 rgba(0, 230, 118, 0); }
   50% { box-shadow: 0 0 30px rgba(0, 230, 118, 0.6); }
@@ -784,6 +885,16 @@ body:has(.visual-page) {
 @keyframes pulse-conflito {
   0%, 100% { box-shadow: 0 0 12px rgba(255, 109, 0, 0.3); }
   50% { box-shadow: 0 0 28px rgba(255, 109, 0, 0.6); }
+}
+
+@keyframes pulse-destino-invalido {
+  0%, 100% { box-shadow: 0 0 12px rgba(224, 64, 251, 0.3); }
+  50% { box-shadow: 0 0 28px rgba(224, 64, 251, 0.6); }
+}
+
+@keyframes pulse-saldo-insuficiente {
+  0%, 100% { box-shadow: 0 0 12px rgba(255, 171, 0, 0.3); }
+  50% { box-shadow: 0 0 28px rgba(255, 171, 0, 0.6); }
 }
 
 /* --- SVG Lines --- */
@@ -824,6 +935,22 @@ body:has(.visual-page) {
   stroke: #4fc3f7;
   stroke-dasharray: 6 4;
   animation: dash-move 0.8s linear infinite;
+}
+
+.hub-line.destino_invalido {
+  stroke: #e040fb;
+  stroke-dasharray: 3 5;
+  animation: dash-move 0.4s linear infinite;
+}
+
+.hub-line.saldo_insuficiente {
+  stroke: #ffab00;
+  stroke-dasharray: 4 6;
+  animation: dash-move 0.5s linear infinite;
+}
+
+.hub-line.cheque_especial {
+  stroke: #1de9b6;
 }
 
 .arrow-line.conflito,
@@ -896,6 +1023,9 @@ body:has(.visual-page) {
 .legend-dot.locked { background: #00e676; }
 .legend-dot.conflito { background: #ff6d00; }
 .legend-dot.blocked { background: #ef5350; }
+.legend-dot.destino_invalido { background: #e040fb; }
+.legend-dot.saldo_insuficiente { background: #ffab00; }
+.legend-dot.cheque_especial { background: #1de9b6; }
 .legend-dot.idle { background: rgba(85, 102, 119, 0.4); }
 
 /* --- Results Overlay --- */

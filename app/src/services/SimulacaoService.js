@@ -74,7 +74,7 @@ class SimulacaoService {
         if (origem.id === destino.id) continue;
         const saldoOrigem = origem.getSaldoCentavos();
         if (saldoOrigem <= 0) continue;
-        const valor = Math.floor(Math.random() * Math.min(saldoOrigem, 10000)) + 1;
+        const valor = Math.floor(Math.random() * 90001) + 10000;
         const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino;
         const transacao = new Transacao(origem, contaDestino, valor);
         gerenciador.adicionarTransacao(transacao);
