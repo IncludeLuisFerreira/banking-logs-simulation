@@ -38,7 +38,8 @@ class SimulacaoService {
   }
 
   adicionarConta(saldoInicialCentavos = 100000, nome = '') {
-    const conta = new Conta(this.nextId++, saldoInicialCentavos);
+    const chequeEspecial = Math.random() < 0.8 ? 100000 : 0;
+    const conta = new Conta(this.nextId++, saldoInicialCentavos, chequeEspecial);
     this.contas.set(conta.id, { conta, nome });
     clientesOnline.set(this.contas.size);
     this.lockLogger.onEvent('conta:adicionada', {
@@ -99,7 +100,7 @@ class SimulacaoService {
         if (origem.id === destino.id) continue;
         if (origem.getSaldoCentavos() <= 0) continue;
         const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
-        const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino;
+        const contaDestino = Math.random() < 0.10 ? CONTA_INVALIDA : destino;
         transacoes.push(new Transacao(origem, contaDestino, valor));
       }
     }
@@ -113,24 +114,21 @@ class SimulacaoService {
     });
 
     gerenciador.totalTransacoes = 0;
-    gerenciador.NUM_WORKERS = Math.min(contasAtivas.length * 2, 50);
-    gerenciador.workerDelayMs = 80;
+    gerenciador.NUM_WORKERS = 20;
+    gerenciador.workerDelayMs = 600;
     gerenciador.start();
 
     let idx = 0;
     let alimentacaoConcluida = false;
     const alimentar = () => {
-      if (!this.simulacaoAtiva) return;
-      const batchSize = Math.min(
-        Math.floor(Math.random() * Math.max(contasAtivas.length, 3)) + 2,
-        transacoes.length - idx
-      );
+      if (!this.simulacaoAtiva || !gerenciador.running) return;
+      const batchSize = Math.min(3, transacoes.length - idx);
       for (let i = 0; i < batchSize; i++) {
         gerenciador.adicionarTransacao(transacoes[idx + i]);
       }
       idx += batchSize;
       if (idx < transacoes.length) {
-        setTimeout(alimentar, this._poissonDelay(400));
+        setTimeout(alimentar, this._poissonDelay(500));
       } else {
         alimentacaoConcluida = true;
         gerenciador.relatorio.setQuantidadeTransacoes(gerenciador.totalTransacoes);
@@ -139,8 +137,13 @@ class SimulacaoService {
     setTimeout(alimentar, 10);
 
     const aguardarConclusao = async () => {
-      while (!alimentacaoConcluida) {
+      while (!alimentacaoConcluida && this.simulacaoAtiva && gerenciador.running) {
         await new Promise(r => setTimeout(r, 200));
+      }
+      if (!this.simulacaoAtiva || !gerenciador.running) {
+        this.simulacaoAtiva = false;
+        this.gerenciadorAtual = null;
+        return;
       }
       while (gerenciador.running && (gerenciador.getCount() > 0 || gerenciador.taskEmProcesso > 0)) {
         await new Promise(r => setTimeout(r, 200));
@@ -153,7 +156,11 @@ class SimulacaoService {
         timestamp: Date.now()
       });
     };
-    aguardarConclusao();
+    aguardarConclusao().catch(err => {
+      console.error('SimulacaoService error:', err);
+      this.simulacaoAtiva = false;
+      this.gerenciadorAtual = null;
+    });
 
     return {
       status: 'iniciada',
@@ -219,7 +226,7 @@ class SimulacaoService {
             if (!destino) continue;
             if (origem.getSaldoCentavos() <= 0) continue;
             const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
-            const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino;
+            const contaDestino = Math.random() < 0.10 ? CONTA_INVALIDA : destino;
             const tx = new Transacao(origem, contaDestino, valor);
             gerenciador.adicionarTransacao(tx);
           }
@@ -230,7 +237,7 @@ class SimulacaoService {
           if (!destino) continue;
           if (origem.getSaldoCentavos() <= 0) continue;
           const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
-          const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino;
+          const contaDestino = Math.random() < 0.10 ? CONTA_INVALIDA : destino;
           const tx = new Transacao(origem, contaDestino, valor);
           gerenciador.adicionarTransacao(tx);
         }

@@ -47,9 +47,9 @@ class SimulacaoVisualService {
 
   _criarContas(numContas, estrategia) {
     this.contas.clear();
-    const MAX_CONTAS_CHEQUE_ESPECIAL = 5;
+    const MAX_CONTAS_CHEQUE_ESPECIAL = 30;
     const CHEQUE_ESPECIAL_POR_CONTA = 100000;
-    const PROB_CHEQUE_ESPECIAL = 0.3;
+    const PROB_CHEQUE_ESPECIAL = 0.8;
     let contasComChequeEspecial = 0;
 
     for (let i = 0; i < numContas; i++) {
@@ -78,7 +78,7 @@ class SimulacaoVisualService {
         const saldo = origem.conta.getSaldoCentavos();
         if (saldo <= 0) continue;
         const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
-        const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino.conta;
+        const contaDestino = Math.random() < 0.10 ? CONTA_INVALIDA : destino.conta;
         transacoes.push(new Transacao(origem.conta, contaDestino, valor));
       }
     }
@@ -96,7 +96,7 @@ class SimulacaoVisualService {
       const saldo = origem.conta.getSaldoCentavos();
       if (saldo <= 0) continue;
       const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
-      const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino.conta;
+      const contaDestino = Math.random() < 0.10 ? CONTA_INVALIDA : destino.conta;
       transacoes.push(new Transacao(origem.conta, contaDestino, valor));
     }
     return transacoes;
@@ -110,7 +110,7 @@ class SimulacaoVisualService {
       const destino = contasArray[(i + 1) % numContas];
       const saldo = origem.conta.getSaldoCentavos();
       const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
-      const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino.conta;
+      const contaDestino = Math.random() < 0.10 ? CONTA_INVALIDA : destino.conta;
       transacoes.push(new Transacao(origem.conta, contaDestino, valor));
     }
     return transacoes;
@@ -177,7 +177,7 @@ class SimulacaoVisualService {
     let idx = 0;
     let alimentacaoConcluida = false;
     const alimentar = () => {
-      if (!this.running || this._generation !== gen) return;
+      if (!this.running || this._generation !== gen || !this.gerenciador?.running) return;
       const batchSize = Math.min(
         Math.floor(Math.random() * Math.max(numContas, 3)) + 2,
         transacoes.length - idx
@@ -216,8 +216,15 @@ class SimulacaoVisualService {
 
   async _aguardarConclusao(gen, gerenciador, alimentacaoPronta) {
     if (gerenciador) {
-      while (!alimentacaoPronta()) {
+      while (!alimentacaoPronta() && this.running && this._generation === gen && gerenciador.running) {
         await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      if (!this.running || this._generation !== gen || !gerenciador.running) {
+        if (gen === this._generation) {
+          this.running = false;
+          this.gerenciador = null;
+        }
+        return;
       }
       while (gerenciador.running && (gerenciador.getCount() > 0 || gerenciador.taskEmProcesso > 0)) {
         await new Promise(resolve => setTimeout(resolve, 200));
