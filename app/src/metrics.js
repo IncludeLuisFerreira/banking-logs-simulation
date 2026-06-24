@@ -84,6 +84,20 @@ async function metricsHandler(req, res) {
   res.end(await promClient.register.metrics());
 }
 
+function resetSimulacaoMetrics() {
+  transacoesTotal.reset();
+  transacoesSucesso.reset();
+  transacoesConflito.reset();
+  transacoesSaldoInsuficiente.reset();
+  transacoesDeadlock.reset();
+  transacoesDuracao.reset();
+  transacoesEsperaFila.reset();
+  transacoesChequeEspecial.reset();
+  transacoesDestinoInvalido.reset();
+  workersAtivos.set(0);
+  transacoesFila.set(0);
+}
+
 module.exports = {
   transacoesTotal,
   transacoesSucesso,
@@ -101,5 +115,6 @@ module.exports = {
   transacoesChequeEspecial,
   transacoesDestinoInvalido,
   metricsHandler,
+  resetSimulacaoMetrics,
   promClient,
 };

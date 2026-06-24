@@ -3,6 +3,7 @@ const Transacao = require('../model/Transacao');
 const CONTA_INVALIDA = require('../model/ContaInvalida');
 const GerenciadorTransacoes = require('./GerenciadorTransacoes');
 const DeadlockDetector = require('../concurrency/DeadlockDetector');
+const { clientesOnline, resetSimulacaoMetrics } = require('../metrics');
 
 class SimulacaoVisualService {
   constructor(lockLogger) {
@@ -11,11 +12,15 @@ class SimulacaoVisualService {
     this.running = false;
     this._generation = 0;
     this.gerenciador = null;
-    this.NUM_WORKERS = 8;
+    this.NUM_WORKERS = 20;
   }
 
   _paretoValue(min, alpha = 1.5) {
     return Math.floor(min / Math.random() ** (1 / alpha));
+  }
+
+  _poissonDelay(meanMs) {
+    return -Math.log(1 - Math.random()) * meanMs;
   }
 
   _pickWeightedDestino(contas, origemId) {
@@ -61,6 +66,7 @@ class SimulacaoVisualService {
         this.lockLogger.connectMutex(conta.mutex, { contaId: conta.id, letter });
       }
     }
+    clientesOnline.set(this.contas.size);
   }
 
   _gerarTransacoesNxN() {
@@ -118,6 +124,8 @@ class SimulacaoVisualService {
       return { error: `Número de contas deve ser um inteiro entre ${minContas} e ${maxContas}` };
     }
 
+    resetSimulacaoMetrics();
+
     if (mode === 'force-deadlock') {
       estrategia = 'lock-naive';
     }
@@ -154,7 +162,7 @@ class SimulacaoVisualService {
     }
 
     let deadlockDetector = null;
-    if (mode === 'force-deadlock') {
+    if (estrategia && estrategia.startsWith('lock')) {
       deadlockDetector = new DeadlockDetector();
     }
     this.gerenciador = new GerenciadorTransacoes(this.lockLogger, deadlockDetector);
@@ -163,14 +171,33 @@ class SimulacaoVisualService {
     this.gerenciador.source = 'visual';
     this.gerenciador.simId = gen;
     this.gerenciador.modo = estrategia;
-    for (const t of transacoes) {
-      this.gerenciador.adicionarTransacao(t);
-    }
+    this.gerenciador.totalTransacoes = 0;
     this.gerenciador.start();
+
+    let idx = 0;
+    let alimentacaoConcluida = false;
+    const alimentar = () => {
+      if (!this.running || this._generation !== gen) return;
+      const batchSize = Math.min(
+        Math.floor(Math.random() * Math.max(numContas, 3)) + 2,
+        transacoes.length - idx
+      );
+      for (let i = 0; i < batchSize; i++) {
+        this.gerenciador.adicionarTransacao(transacoes[idx + i]);
+      }
+      idx += batchSize;
+      if (idx < transacoes.length) {
+        setTimeout(alimentar, this._poissonDelay(200));
+      } else {
+        alimentacaoConcluida = true;
+        this.gerenciador.relatorio.setQuantidadeTransacoes(this.gerenciador.totalTransacoes);
+      }
+    };
+    setTimeout(alimentar, 10);
 
     const gerenciadorAtual = this.gerenciador;
     setImmediate(() =>
-      this._aguardarConclusao(gen, gerenciadorAtual).catch(err => {
+      this._aguardarConclusao(gen, gerenciadorAtual, () => alimentacaoConcluida).catch(err => {
         console.error('SimulacaoVisualService error:', err);
         this.running = false;
       })
@@ -187,8 +214,11 @@ class SimulacaoVisualService {
     };
   }
 
-  async _aguardarConclusao(gen, gerenciador) {
+  async _aguardarConclusao(gen, gerenciador, alimentacaoPronta) {
     if (gerenciador) {
+      while (!alimentacaoPronta()) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
       while (gerenciador.running && (gerenciador.getCount() > 0 || gerenciador.taskEmProcesso > 0)) {
         await new Promise(resolve => setTimeout(resolve, 200));
       }

@@ -3,7 +3,7 @@ const Transacao = require('../model/Transacao');
 const CONTA_INVALIDA = require('../model/ContaInvalida');
 const GerenciadorTransacoes = require('./GerenciadorTransacoes');
 const LockLogger = require('./LockLogger');
-const { clientesOnline } = require('../metrics');
+const { clientesOnline, resetSimulacaoMetrics } = require('../metrics');
 
 class SimulacaoService {
   constructor() {
@@ -82,6 +82,7 @@ class SimulacaoService {
     if (this.simulacaoAtiva) return { error: 'Simulação já em andamento' };
     if (this.contas.size < 2) return { error: 'São necessárias pelo menos 2 contas' };
 
+    resetSimulacaoMetrics();
     this.simulacaoAtiva = true;
     this._modoContinuo = false;
     const gerenciador = new GerenciadorTransacoes(this.lockLogger);
@@ -92,19 +93,18 @@ class SimulacaoService {
       if (conta.ativa) contasAtivas.push(conta);
     }
 
-    let totalTransacoes = 0;
+    const transacoes = [];
     for (const origem of contasAtivas) {
       for (const destino of contasAtivas) {
         if (origem.id === destino.id) continue;
-        const saldoOrigem = origem.getSaldoCentavos();
-        if (saldoOrigem <= 0) continue;
+        if (origem.getSaldoCentavos() <= 0) continue;
         const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
         const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino;
-        const transacao = new Transacao(origem, contaDestino, valor);
-        gerenciador.adicionarTransacao(transacao);
-        totalTransacoes++;
+        transacoes.push(new Transacao(origem, contaDestino, valor));
       }
     }
+
+    const totalTransacoes = transacoes.length;
 
     this.lockLogger.onEvent('simulacao:iniciada', {
       totalContas: contasAtivas.length,
@@ -112,9 +112,39 @@ class SimulacaoService {
       timestamp: Date.now()
     });
 
+    gerenciador.totalTransacoes = 0;
+    gerenciador.NUM_WORKERS = Math.min(contasAtivas.length * 2, 50);
+    gerenciador.workerDelayMs = 80;
     gerenciador.start();
 
-    setImmediate(async () => {
+    let idx = 0;
+    let alimentacaoConcluida = false;
+    const alimentar = () => {
+      if (!this.simulacaoAtiva) return;
+      const batchSize = Math.min(
+        Math.floor(Math.random() * Math.max(contasAtivas.length, 3)) + 2,
+        transacoes.length - idx
+      );
+      for (let i = 0; i < batchSize; i++) {
+        gerenciador.adicionarTransacao(transacoes[idx + i]);
+      }
+      idx += batchSize;
+      if (idx < transacoes.length) {
+        setTimeout(alimentar, this._poissonDelay(400));
+      } else {
+        alimentacaoConcluida = true;
+        gerenciador.relatorio.setQuantidadeTransacoes(gerenciador.totalTransacoes);
+      }
+    };
+    setTimeout(alimentar, 10);
+
+    const aguardarConclusao = async () => {
+      while (!alimentacaoConcluida) {
+        await new Promise(r => setTimeout(r, 200));
+      }
+      while (gerenciador.running && (gerenciador.getCount() > 0 || gerenciador.taskEmProcesso > 0)) {
+        await new Promise(r => setTimeout(r, 200));
+      }
       await gerenciador.encerrar();
       this.simulacaoAtiva = false;
       this.gerenciadorAtual = null;
@@ -122,7 +152,8 @@ class SimulacaoService {
         status: 'concluida',
         timestamp: Date.now()
       });
-    });
+    };
+    aguardarConclusao();
 
     return {
       status: 'iniciada',
@@ -135,10 +166,16 @@ class SimulacaoService {
     if (this.simulacaoAtiva) return { error: 'Simulação já em andamento' };
     if (this.contas.size < 2) return { error: 'São necessárias pelo menos 2 contas' };
 
+    resetSimulacaoMetrics();
     this.simulacaoAtiva = true;
     this._modoContinuo = true;
     const gerenciador = new GerenciadorTransacoes(this.lockLogger);
     gerenciador.modo = estrategia;
+
+    if (estrategia && estrategia.startsWith('lock')) {
+      const DeadlockDetector = require('../concurrency/DeadlockDetector');
+      gerenciador.deadlockDetector = new DeadlockDetector();
+    }
     this.gerenciadorAtual = gerenciador;
 
     const contasAtivas = () => {
