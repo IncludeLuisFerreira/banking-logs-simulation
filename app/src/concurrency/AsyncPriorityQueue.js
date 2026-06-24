@@ -16,14 +16,9 @@ class AsyncPriorityQueue {
   push(item) {
     this.heap.push(item);
     this._bubbleUp(this.heap.length - 1);
-    if (this.waiters.length > 0) {
+    while (this.waiters.length > 0 && this.heap.length > 0) {
       const resolve = this.waiters.shift();
-      const nextItem = this._pop();
-      if (nextItem !== undefined) {
-        resolve(nextItem);
-      } else {
-        resolve(null);
-      }
+      resolve(this._pop());
     }
   }
 

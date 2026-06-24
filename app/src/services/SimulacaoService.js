@@ -13,7 +13,28 @@ class SimulacaoService {
     this.simulacaoAtiva = false;
     this.gerenciadorAtual = null;
     this._intervaloContinuo = null;
+    this._timeoutId = null;
     this._modoContinuo = false;
+  }
+
+  _poissonDelay(meanMs) {
+    return -Math.log(1 - Math.random()) * meanMs;
+  }
+
+  _paretoValue(min, alpha = 1.5) {
+    return Math.floor(min / Math.random() ** (1 / alpha));
+  }
+
+  _pickWeightedDestino(contas, origemId) {
+    if (contas.length <= 1) return null;
+    const pesos = contas.map(c => c.id === origemId ? 0 : 1000 / c.id);
+    const totalPeso = pesos.reduce((s, p) => s + p, 0);
+    let r = Math.random() * totalPeso;
+    for (let i = 0; i < contas.length; i++) {
+      r -= pesos[i];
+      if (r <= 0) return contas[i];
+    }
+    return contas.find(c => c.id !== origemId);
   }
 
   adicionarConta(saldoInicialCentavos = 100000, nome = '') {
@@ -73,16 +94,15 @@ class SimulacaoService {
 
     let totalTransacoes = 0;
     for (const origem of contasAtivas) {
-      for (const destino of contasAtivas) {
-        if (origem.id === destino.id) continue;
-        const saldoOrigem = origem.getSaldoCentavos();
-        if (saldoOrigem <= 0) continue;
-        const valor = Math.floor(Math.random() * 90001) + 10000;
-        const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino;
-        const transacao = new Transacao(origem, contaDestino, valor);
-        gerenciador.adicionarTransacao(transacao);
-        totalTransacoes++;
-      }
+      const destino = this._pickWeightedDestino(contasAtivas, origem.id);
+      if (!destino) continue;
+      const saldoOrigem = origem.getSaldoCentavos();
+      if (saldoOrigem <= 0) continue;
+      const valor = Math.min(this._paretoValue(100, 1.8), 500000);
+      const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino;
+      const transacao = new Transacao(origem, contaDestino, valor);
+      gerenciador.adicionarTransacao(transacao);
+      totalTransacoes++;
     }
 
     this.lockLogger.onEvent('simulacao:iniciada', {
@@ -138,21 +158,53 @@ class SimulacaoService {
       timestamp: Date.now()
     });
 
-    this._intervaloContinuo = setInterval(() => {
+    let burstCountdown = Math.floor(Math.random() * 5) + 3;
+    let cicloCount = 0;
+
+    const tick = async () => {
       if (!this.simulacaoAtiva) return;
       const contas = contasAtivas();
-      if (contas.length < 2) return;
-      for (const origem of contas) {
-        const destino = contas[Math.floor(Math.random() * contas.length)];
-        if (origem.id === destino.id) continue;
-        const saldoOrigem = origem.getSaldoCentavos();
-        if (saldoOrigem <= 0) continue;
-        const valor = Math.floor(Math.random() * 90001) + 10000;
-        const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino;
-        const transacao = new Transacao(origem, contaDestino, valor);
-        gerenciador.adicionarTransacao(transacao);
+      if (contas.length < 2) {
+        this._timeoutId = setTimeout(tick, intervaloMs);
+        return;
       }
-    }, intervaloMs);
+
+      cicloCount++;
+
+      if (cicloCount >= burstCountdown) {
+        cicloCount = 0;
+        burstCountdown = Math.floor(Math.random() * 5) + 3;
+        const burstSize = Math.floor(Math.random() * 30) + 10;
+        for (let b = 0; b < burstSize; b++) {
+          for (const origem of contas) {
+            const destino = this._pickWeightedDestino(contas, origem.id);
+            if (!destino) continue;
+            if (origem.getSaldoCentavos() <= 0) continue;
+            const valor = Math.min(this._paretoValue(100, 1.8), 500000);
+            const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino;
+            const tx = new Transacao(origem, contaDestino, valor);
+            gerenciador.adicionarTransacao(tx);
+          }
+        }
+      } else {
+        for (const origem of contas) {
+          const destino = this._pickWeightedDestino(contas, origem.id);
+          if (!destino) continue;
+          if (origem.getSaldoCentavos() <= 0) continue;
+          const valor = Math.min(this._paretoValue(100, 1.8), 500000);
+          const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino;
+          const tx = new Transacao(origem, contaDestino, valor);
+          gerenciador.adicionarTransacao(tx);
+        }
+      }
+
+      const delay = this._poissonDelay(intervaloMs);
+      this._timeoutId = setTimeout(tick, delay);
+    };
+
+    this._timeoutId = setTimeout(tick, intervaloMs);
+
+    this._intervaloContinuo = { cancel: () => clearTimeout(this._timeoutId) };
 
     return {
       status: 'iniciada',
@@ -168,8 +220,12 @@ class SimulacaoService {
       return { error: 'Nenhuma simulação em andamento' };
     }
     if (this._intervaloContinuo) {
-      clearInterval(this._intervaloContinuo);
+      this._intervaloContinuo.cancel();
       this._intervaloContinuo = null;
+    }
+    if (this._timeoutId) {
+      clearTimeout(this._timeoutId);
+      this._timeoutId = null;
     }
     this.gerenciadorAtual.running = false;
     this.simulacaoAtiva = false;

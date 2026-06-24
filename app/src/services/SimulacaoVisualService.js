@@ -14,6 +14,22 @@ class SimulacaoVisualService {
     this.NUM_WORKERS = 8;
   }
 
+  _paretoValue(min, alpha = 1.5) {
+    return Math.floor(min / Math.random() ** (1 / alpha));
+  }
+
+  _pickWeightedDestino(contas, origemId) {
+    if (contas.length <= 1) return null;
+    const pesos = contas.map(c => c.conta.id === origemId ? 0 : 1000 / c.conta.id);
+    const totalPeso = pesos.reduce((s, p) => s + p, 0);
+    let r = Math.random() * totalPeso;
+    for (let i = 0; i < contas.length; i++) {
+      r -= pesos[i];
+      if (r <= 0) return contas[i];
+    }
+    return contas.find(c => c.conta.id !== origemId);
+  }
+
   getContas() {
     return Array.from(this.contas.values()).map(c => ({
       id: c.conta.id,
@@ -51,14 +67,13 @@ class SimulacaoVisualService {
     const transacoes = [];
     const contasArray = Array.from(this.contas.values());
     for (const origem of contasArray) {
-      for (const destino of contasArray) {
-        if (origem.conta.id === destino.conta.id) continue;
-        const saldo = origem.conta.getSaldoCentavos();
-        if (saldo <= 0) continue;
-        const valor = Math.floor(Math.random() * 90001) + 10000;
-        const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino.conta;
-        transacoes.push(new Transacao(origem.conta, contaDestino, valor));
-      }
+      const destino = this._pickWeightedDestino(contasArray, origem.conta.id);
+      if (!destino) continue;
+      const saldo = origem.conta.getSaldoCentavos();
+      if (saldo <= 0) continue;
+      const valor = Math.min(this._paretoValue(100, 1.8), 500000);
+      const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino.conta;
+      transacoes.push(new Transacao(origem.conta, contaDestino, valor));
     }
     return transacoes;
   }
@@ -68,19 +83,13 @@ class SimulacaoVisualService {
     const contasArray = Array.from(this.contas.values());
     for (let i = 0; i < quantidade; i++) {
       const idxOrigem = Math.floor(Math.random() * contasArray.length);
-      let idxDestino = Math.floor(Math.random() * contasArray.length);
-      let tentativas = 0;
-      while (idxDestino === idxOrigem && tentativas < 10) {
-        idxDestino = Math.floor(Math.random() * contasArray.length);
-        tentativas++;
-      }
-      if (idxDestino === idxOrigem) continue;
       const origem = contasArray[idxOrigem];
-      const destino = contasArray[idxDestino];
+      const destino = this._pickWeightedDestino(contasArray, origem.conta.id);
+      if (!destino) continue;
       const saldo = origem.conta.getSaldoCentavos();
       if (saldo <= 0) continue;
-      const valor = Math.floor(Math.random() * 90001) + 10000;
-      const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino.conta;
+      const valor = Math.min(this._paretoValue(100, 1.8), 500000);
+      const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino.conta;
       transacoes.push(new Transacao(origem.conta, contaDestino, valor));
     }
     return transacoes;
@@ -93,8 +102,8 @@ class SimulacaoVisualService {
       const origem = contasArray[i];
       const destino = contasArray[(i + 1) % numContas];
       const saldo = origem.conta.getSaldoCentavos();
-      const valor = Math.floor(Math.random() * 90001) + 10000;
-      const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino.conta;
+      const valor = Math.min(this._paretoValue(100, 1.8), 500000);
+      const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino.conta;
       transacoes.push(new Transacao(origem.conta, contaDestino, valor));
     }
     return transacoes;

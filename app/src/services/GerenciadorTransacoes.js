@@ -63,7 +63,7 @@ class GerenciadorTransacoes {
     while (this.running) {
       let task = null;
       try {
-        task = await this.fila.poll(500);
+        task = await this.fila.poll(5);
         if (task === null) continue;
         if (!this.running) break;
 
@@ -88,12 +88,12 @@ class GerenciadorTransacoes {
 
         transacoesTotal.inc();
         transacoesDuracao.observe(duracaoMs);
+        transacoesEsperaFila.observe(tempoEspera);
 
         switch (resultado) {
           case STATES.SUCCESS:
             this.relatorio.push(task, tempoEspera);
             transacoesSucesso.inc();
-            transacoesEsperaFila.observe(tempoEspera);
             break;
           case STATES.INSUFICIENT_FUNDS:
             this.relatorio.incrementaSaldoInsuficiente();
