@@ -7,6 +7,8 @@ datasources:
     url: http://prometheus:9090
     uid: prometheus
     isDefault: true
+    jsonData:
+      timeInterval: 250ms
   - name: Loki
     type: loki
     access: proxy

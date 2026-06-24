@@ -7,6 +7,8 @@ positions:
 
 clients:
   - url: http://loki:3100/loki/api/v1/push
+    batchwait: 100ms
+    batchsize: 1
 
 scrape_configs:
   - job_name: app-logs

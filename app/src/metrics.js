@@ -1,6 +1,6 @@
 const promClient = require('prom-client');
 
-promClient.collectDefaultMetrics();
+promClient.collectDefaultMetrics({ collectInterval: 250 });
 
 const transacoesTotal = new promClient.Counter({
   name: 'transacoes_total',

@@ -3,40 +3,50 @@
   "uid": "banking-simulation",
   "schemaVersion": 39,
   "timezone": "browser",
+  "refresh": "1s",
   "panels": [
     {
-      "title": "Total Transactions",
+      "title": "Transações/s",
       "type": "stat",
-      "gridPos": { "x": 0, "y": 0, "w": 3, "h": 4 },
+      "gridPos": { "x": 0, "y": 0, "w": 3, "h": 3 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "sum(rate(transacoes_total[$__rate_interval]))",
-          "legendFormat": "transacoes/s"
+          "legendFormat": "tx/s"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "color": { "mode": "fixed" },
-          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "blue" }] }
+          "unit": "reqps",
+          "decimals": 1,
+          "color": { "mode": "fixed", "fixedColor": "blue" }
         }
+      },
+      "options": {
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
       }
     },
     {
-      "title": "Success Rate",
+      "title": "Taxa de Sucesso",
       "type": "stat",
-      "gridPos": { "x": 3, "y": 0, "w": 3, "h": 4 },
+      "gridPos": { "x": 3, "y": 0, "w": 3, "h": 3 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "sum(rate(transacoes_sucesso_total[$__rate_interval])) / sum(rate(transacoes_total[$__rate_interval])) * 100",
-          "legendFormat": "sucesso %"
+          "legendFormat": "%"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "max": 100,
           "color": { "mode": "thresholds" },
           "thresholds": {
             "mode": "absolute",
@@ -47,31 +57,18 @@
             ]
           }
         }
+      },
+      "options": {
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
       }
     },
     {
-      "title": "Online Clients",
+      "title": "Workers Ativos",
       "type": "stat",
-      "gridPos": { "x": 6, "y": 0, "w": 3, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "clientes_online",
-          "legendFormat": "clientes"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": { "mode": "fixed" },
-          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "purple" }] }
-        }
-      }
-    },
-    {
-      "title": "Active Workers",
-      "type": "stat",
-      "gridPos": { "x": 9, "y": 0, "w": 3, "h": 4 },
+      "gridPos": { "x": 6, "y": 0, "w": 3, "h": 3 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -92,148 +89,23 @@
             ]
           }
         }
+      },
+      "options": {
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
       }
     },
     {
-      "title": "Transaction Duration (P95)",
-      "type": "timeseries",
-      "gridPos": { "x": 0, "y": 4, "w": 6, "h": 8 },
+      "title": "Fila",
+      "type": "stat",
+      "gridPos": { "x": 9, "y": 0, "w": 3, "h": 3 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        {
-          "expr": "histogram_quantile(0.95, sum(rate(transacoes_duracao_ms_bucket[$__rate_interval])) by (le))",
-          "legendFormat": "P95"
-        },
-        {
-          "expr": "histogram_quantile(0.50, sum(rate(transacoes_duracao_ms_bucket[$__rate_interval])) by (le))",
-          "legendFormat": "P50"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms"
-        }
-      }
-    },
-    {
-      "title": "Queue Wait Time (P95)",
-      "type": "timeseries",
-      "gridPos": { "x": 6, "y": 4, "w": 6, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.95, sum(rate(transacoes_espera_fila_ms_bucket[$__rate_interval])) by (le))",
-          "legendFormat": "P95"
-        },
-        {
-          "expr": "histogram_quantile(0.50, sum(rate(transacoes_espera_fila_ms_bucket[$__rate_interval])) by (le))",
-          "legendFormat": "P50"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms"
-        }
-      }
-    },
-    {
-      "title": "Transactions by Result",
-      "type": "bargauge",
-      "gridPos": { "x": 0, "y": 12, "w": 6, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "sum(rate(transacoes_sucesso_total[$__rate_interval]))",
-          "legendFormat": "Success"
-        },
-        {
-          "expr": "sum(rate(transacoes_conflito_total[$__rate_interval]))",
-          "legendFormat": "Conflict"
-        },
-        {
-          "expr": "sum(rate(transacoes_saldo_insuficiente_total[$__rate_interval]))",
-          "legendFormat": "Insufficient Funds"
-        },
-        {
-          "expr": "sum(rate(transacoes_deadlock_total[$__rate_interval]))",
-          "legendFormat": "Deadlock"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": { "mode": "palette-classic" }
-        }
-      }
-    },
-    {
-      "title": "Workers & Queue",
-      "type": "timeseries",
-      "gridPos": { "x": 6, "y": 12, "w": 6, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "workers_ativos",
-          "legendFormat": "Active Workers"
-        },
         {
           "expr": "transacoes_fila",
-          "legendFormat": "Queue Size"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        }
-      }
-    },
-    {
-      "title": "Login Attempts & Blocks",
-      "type": "timeseries",
-      "gridPos": { "x": 0, "y": 20, "w": 6, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "sum(rate(login_tentativas_total[$__rate_interval]))",
-          "legendFormat": "Login Attempts/s"
-        },
-        {
-          "expr": "sum(rate(rate_limiter_bloqueios_total[$__rate_interval]))",
-          "legendFormat": "Blocks/s"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        }
-      }
-    },
-    {
-      "title": "Total Login Attempts",
-      "type": "stat",
-      "gridPos": { "x": 6, "y": 20, "w": 3, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "sum(login_tentativas_total)",
-          "legendFormat": "total"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        }
-      }
-    },
-    {
-      "title": "Total Blocks",
-      "type": "stat",
-      "gridPos": { "x": 9, "y": 20, "w": 3, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "sum(rate_limiter_bloqueios_total)",
-          "legendFormat": "total"
+          "legendFormat": "queue"
         }
       ],
       "fieldConfig": {
@@ -244,55 +116,250 @@
             "mode": "absolute",
             "steps": [
               { "value": null, "color": "green" },
-              { "value": 1, "color": "orange" },
-              { "value": 10, "color": "red" }
+              { "value": 20, "color": "orange" },
+              { "value": 100, "color": "red" }
             ]
           }
         }
+      },
+      "options": {
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
       }
     },
     {
-      "title": "Total de Erros (Destino Inválido)",
-      "type": "stat",
-      "gridPos": { "x": 0, "y": 28, "w": 4, "h": 4 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "title": "Throughput por Resultado",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 3, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(count_over_time({job=\"banking-simulation\"} |= \"destino_invalido\" [1m]))",
-          "legendFormat": "total"
+          "expr": "sum(rate(transacoes_sucesso_total[$__rate_interval]))",
+          "legendFormat": "Sucesso"
+        },
+        {
+          "expr": "sum(rate(transacoes_conflito_total[$__rate_interval]))",
+          "legendFormat": "Conflito"
+        },
+        {
+          "expr": "sum(rate(transacoes_saldo_insuficiente_total[$__rate_interval]))",
+          "legendFormat": "Saldo Insuf."
+        },
+        {
+          "expr": "sum(rate(transacoes_deadlock_total[$__rate_interval]))",
+          "legendFormat": "Deadlock"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "fillOpacity": 25,
+            "stacking": { "mode": "normal" },
+            "lineWidth": 1,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Sucesso" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Conflito" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Saldo Insuf." }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Deadlock" }, "properties": [{ "id": "color", "value": { "fixedColor": "dark-red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "max", "mean"] },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "title": "Duração das Transações",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 11, "w": 6, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(transacoes_duracao_ms_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "P95"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(transacoes_duracao_ms_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "P50"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(transacoes_duracao_ms_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "P99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 2,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "P50" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "P95" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "P99" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max", "mean"] }
+      }
+    },
+    {
+      "title": "Espera na Fila",
+      "type": "timeseries",
+      "gridPos": { "x": 6, "y": 11, "w": 6, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(transacoes_espera_fila_ms_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "P95"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(transacoes_espera_fila_ms_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "P50"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(transacoes_espera_fila_ms_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "P99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 2,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "P50" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "P95" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "P99" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max", "mean"] }
+      }
+    },
+    {
+      "title": "Workers & Fila",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 19, "w": 6, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "workers_ativos",
+          "legendFormat": "Workers Ativos"
+        },
+        {
+          "expr": "transacoes_fila",
+          "legendFormat": "Tamanho Fila"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "color": { "mode": "fixed" },
-          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "red" }] }
-        }
+          "custom": {
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Workers Ativos" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Tamanho Fila" }, "properties": [{ "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max", "mean"] }
       }
     },
     {
-      "title": "Erros ao Longo do Tempo",
+      "title": "Cheque Especial & Destino Inválido",
       "type": "timeseries",
-      "gridPos": { "x": 4, "y": 28, "w": 8, "h": 8 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "x": 6, "y": 19, "w": 6, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum by (origemId) (count_over_time({job=\"banking-simulation\"} |= \"destino_invalido\" [30s]))",
-          "legendFormat": "Conta {{origemId}}"
+          "expr": "sum(rate(transacoes_cheque_especial_total[$__rate_interval]))",
+          "legendFormat": "Cheque Especial"
+        },
+        {
+          "expr": "sum(rate(transacoes_destino_invalido_total[$__rate_interval]))",
+          "legendFormat": "Destino Inválido"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "short" }
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Cheque Especial" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Destino Inválido" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max", "mean"] }
       }
     },
     {
-      "title": "Distribuição por Conta Origem",
+      "title": "Segurança",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 26, "w": 6, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(login_tentativas_total[$__rate_interval]))",
+          "legendFormat": "Logins"
+        },
+        {
+          "expr": "sum(rate(tentativas_forca_bruta_total[$__rate_interval]))",
+          "legendFormat": "Força Bruta"
+        },
+        {
+          "expr": "sum(rate(rate_limiter_bloqueios_total[$__rate_interval]))",
+          "legendFormat": "Bloqueios"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Logins" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Força Bruta" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Bloqueios" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max", "mean"] }
+      }
+    },
+    {
+      "title": "Erros por Conta Origem",
       "type": "bargauge",
-      "gridPos": { "x": 0, "y": 36, "w": 6, "h": 8 },
+      "gridPos": { "x": 6, "y": 26, "w": 6, "h": 7 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "sum by (origemId) (count_over_time({job=\"banking-simulation\"} |= \"destino_invalido\" [1h]))",
+          "expr": "sum by (origemId) (count_over_time({job=\"banking-simulation\"} |= \"destino_invalido\" [$__range]))",
           "legendFormat": "Conta {{origemId}}"
         }
       ],
@@ -301,19 +368,29 @@
           "unit": "short",
           "color": { "mode": "palette-classic" }
         }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true
       }
     },
     {
-      "title": "Últimos Erros",
+      "title": "Últimos Erros (Logs)",
       "type": "logs",
-      "gridPos": { "x": 6, "y": 36, "w": 6, "h": 8 },
+      "gridPos": { "x": 0, "y": 33, "w": 12, "h": 6 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
           "expr": "{job=\"banking-simulation\"} |= \"destino_invalido\"",
           "legendFormat": ""
         }
-      ]
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true
+      }
     }
   ]
 }
