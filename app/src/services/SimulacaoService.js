@@ -12,6 +12,8 @@ class SimulacaoService {
     this.lockLogger = new LockLogger();
     this.simulacaoAtiva = false;
     this.gerenciadorAtual = null;
+    this._intervaloContinuo = null;
+    this._modoContinuo = false;
   }
 
   adicionarConta(saldoInicialCentavos = 100000, nome = '') {
@@ -60,6 +62,7 @@ class SimulacaoService {
     if (this.contas.size < 2) return { error: 'São necessárias pelo menos 2 contas' };
 
     this.simulacaoAtiva = true;
+    this._modoContinuo = false;
     const gerenciador = new GerenciadorTransacoes(this.lockLogger);
     this.gerenciadorAtual = gerenciador;
 
@@ -107,12 +110,70 @@ class SimulacaoService {
     };
   }
 
+  async iniciarSimulacaoContinua({ intervaloMs = 50, estrategia = 'otimista' } = {}) {
+    if (this.simulacaoAtiva) return { error: 'Simulação já em andamento' };
+    if (this.contas.size < 2) return { error: 'São necessárias pelo menos 2 contas' };
+
+    this.simulacaoAtiva = true;
+    this._modoContinuo = true;
+    const gerenciador = new GerenciadorTransacoes(this.lockLogger);
+    gerenciador.modo = estrategia;
+    this.gerenciadorAtual = gerenciador;
+
+    const contasAtivas = () => {
+      const arr = [];
+      for (const [, { conta }] of this.contas) {
+        if (conta.ativa) arr.push(conta);
+      }
+      return arr;
+    };
+
+    gerenciador.start();
+
+    this.lockLogger.onEvent('simulacao:iniciada', {
+      modo: 'continuo',
+      intervaloMs,
+      estrategia,
+      totalContas: this.contas.size,
+      timestamp: Date.now()
+    });
+
+    this._intervaloContinuo = setInterval(() => {
+      if (!this.simulacaoAtiva) return;
+      const contas = contasAtivas();
+      if (contas.length < 2) return;
+      for (const origem of contas) {
+        const destino = contas[Math.floor(Math.random() * contas.length)];
+        if (origem.id === destino.id) continue;
+        const saldoOrigem = origem.getSaldoCentavos();
+        if (saldoOrigem <= 0) continue;
+        const valor = Math.floor(Math.random() * 90001) + 10000;
+        const contaDestino = Math.random() < 0.1 ? CONTA_INVALIDA : destino;
+        const transacao = new Transacao(origem, contaDestino, valor);
+        gerenciador.adicionarTransacao(transacao);
+      }
+    }, intervaloMs);
+
+    return {
+      status: 'iniciada',
+      modo: 'continuo',
+      intervaloMs,
+      estrategia,
+      totalContas: this.contas.size
+    };
+  }
+
   pararSimulacao() {
     if (!this.simulacaoAtiva || !this.gerenciadorAtual) {
       return { error: 'Nenhuma simulação em andamento' };
     }
+    if (this._intervaloContinuo) {
+      clearInterval(this._intervaloContinuo);
+      this._intervaloContinuo = null;
+    }
     this.gerenciadorAtual.running = false;
     this.simulacaoAtiva = false;
+    this._modoContinuo = false;
     this.gerenciadorAtual = null;
     this.lockLogger.onEvent('simulacao:parada', { timestamp: Date.now() });
     return { status: 'parada' };

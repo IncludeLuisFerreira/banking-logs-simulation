@@ -108,6 +108,22 @@ app.post('/simulacao/stress', autenticar, async (req, res) => {
   }
 });
 
+app.post('/simulacao/continua', autenticar, async (req, res) => {
+  try {
+    const { intervaloMs, estrategia } = req.body;
+    const resultado = await simulacaoService.iniciarSimulacaoContinua({
+      intervaloMs: parseInt(intervaloMs) || 50,
+      estrategia: estrategia || 'otimista'
+    });
+    if (resultado.error) {
+      return res.status(400).json({ erro: resultado.error });
+    }
+    res.json(resultado);
+  } catch (erro) {
+    res.status(500).json({ erro: erro.message });
+  }
+});
+
 app.post('/simulacao/stop', autenticar, (req, res) => {
   try {
     const resultado = simulacaoService.pararSimulacao();
