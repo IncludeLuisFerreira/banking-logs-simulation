@@ -68,7 +68,6 @@ class GerenciadorTransacoes {
         if (!this.running) break;
 
         this.taskEmProcesso++;
-        transacoesTotal.inc();
         workersAtivos.set(this.taskEmProcesso);
         transacoesFila.set(this.fila.size());
 
@@ -81,11 +80,15 @@ class GerenciadorTransacoes {
         const tempoInicio = process.hrtime.bigint();
         const resultado = await this.executar(task, threadId);
         const tempoFim = process.hrtime.bigint();
-        const tempoProcessamento = Number(tempoFim - tempoInicio);
+        const duracaoMs = Number(tempoFim - tempoInicio) / 1_000_000;
 
         this.tempoTotalEsperaMilis += tempoEspera;
 
-        this.relatorio.incrementTempoTotalProcessamento(tempoProcessamento);
+        this.relatorio.incrementTempoTotalProcessamento(Number(tempoFim - tempoInicio));
+
+        transacoesTotal.inc();
+        transacoesDuracao.observe(duracaoMs);
+
         switch (resultado) {
           case STATES.SUCCESS:
             this.relatorio.push(task, tempoEspera);
@@ -142,7 +145,6 @@ class GerenciadorTransacoes {
   _emitirSuccess(task, threadId) {
     const agora = Date.now();
     const duracaoMs = task.inicioProcessamento !== null ? agora - task.inicioProcessamento : 0;
-    transacoesDuracao.observe(duracaoMs);
     this._emitir('transacao:success', {
       threadId,
       origemId: task.getOrigem().getId(),
