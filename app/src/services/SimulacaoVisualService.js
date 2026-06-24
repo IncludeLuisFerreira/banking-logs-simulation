@@ -67,13 +67,14 @@ class SimulacaoVisualService {
     const transacoes = [];
     const contasArray = Array.from(this.contas.values());
     for (const origem of contasArray) {
-      const destino = this._pickWeightedDestino(contasArray, origem.conta.id);
-      if (!destino) continue;
-      const saldo = origem.conta.getSaldoCentavos();
-      if (saldo <= 0) continue;
-      const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
-      const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino.conta;
-      transacoes.push(new Transacao(origem.conta, contaDestino, valor));
+      for (const destino of contasArray) {
+        if (origem.conta.id === destino.conta.id) continue;
+        const saldo = origem.conta.getSaldoCentavos();
+        if (saldo <= 0) continue;
+        const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
+        const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino.conta;
+        transacoes.push(new Transacao(origem.conta, contaDestino, valor));
+      }
     }
     return transacoes;
   }
