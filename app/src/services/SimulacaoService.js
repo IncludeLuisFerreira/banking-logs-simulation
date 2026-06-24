@@ -94,15 +94,16 @@ class SimulacaoService {
 
     let totalTransacoes = 0;
     for (const origem of contasAtivas) {
-      const destino = this._pickWeightedDestino(contasAtivas, origem.id);
-      if (!destino) continue;
-      const saldoOrigem = origem.getSaldoCentavos();
-      if (saldoOrigem <= 0) continue;
-      const valor = Math.min(this._paretoValue(100, 1.8), 500000);
-      const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino;
-      const transacao = new Transacao(origem, contaDestino, valor);
-      gerenciador.adicionarTransacao(transacao);
-      totalTransacoes++;
+      for (const destino of contasAtivas) {
+        if (origem.id === destino.id) continue;
+        const saldoOrigem = origem.getSaldoCentavos();
+        if (saldoOrigem <= 0) continue;
+        const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
+        const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino;
+        const transacao = new Transacao(origem, contaDestino, valor);
+        gerenciador.adicionarTransacao(transacao);
+        totalTransacoes++;
+      }
     }
 
     this.lockLogger.onEvent('simulacao:iniciada', {
@@ -180,7 +181,7 @@ class SimulacaoService {
             const destino = this._pickWeightedDestino(contas, origem.id);
             if (!destino) continue;
             if (origem.getSaldoCentavos() <= 0) continue;
-            const valor = Math.min(this._paretoValue(100, 1.8), 500000);
+            const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
             const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino;
             const tx = new Transacao(origem, contaDestino, valor);
             gerenciador.adicionarTransacao(tx);
@@ -191,7 +192,7 @@ class SimulacaoService {
           const destino = this._pickWeightedDestino(contas, origem.id);
           if (!destino) continue;
           if (origem.getSaldoCentavos() <= 0) continue;
-          const valor = Math.min(this._paretoValue(100, 1.8), 500000);
+          const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
           const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino;
           const tx = new Transacao(origem, contaDestino, valor);
           gerenciador.adicionarTransacao(tx);

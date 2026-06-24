@@ -71,7 +71,7 @@ class SimulacaoVisualService {
       if (!destino) continue;
       const saldo = origem.conta.getSaldoCentavos();
       if (saldo <= 0) continue;
-      const valor = Math.min(this._paretoValue(100, 1.8), 500000);
+      const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
       const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino.conta;
       transacoes.push(new Transacao(origem.conta, contaDestino, valor));
     }
@@ -88,7 +88,7 @@ class SimulacaoVisualService {
       if (!destino) continue;
       const saldo = origem.conta.getSaldoCentavos();
       if (saldo <= 0) continue;
-      const valor = Math.min(this._paretoValue(100, 1.8), 500000);
+      const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
       const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino.conta;
       transacoes.push(new Transacao(origem.conta, contaDestino, valor));
     }
@@ -102,7 +102,7 @@ class SimulacaoVisualService {
       const origem = contasArray[i];
       const destino = contasArray[(i + 1) % numContas];
       const saldo = origem.conta.getSaldoCentavos();
-      const valor = Math.min(this._paretoValue(100, 1.8), 500000);
+      const valor = Math.min(this._paretoValue(1000, 1.5), 500000);
       const contaDestino = Math.random() < 0.02 ? CONTA_INVALIDA : destino.conta;
       transacoes.push(new Transacao(origem.conta, contaDestino, valor));
     }
